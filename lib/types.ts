@@ -13,6 +13,18 @@ export type PlayStatus = (typeof PLAY_STATUSES)[number];
 export const CONDITIONS = ["mint", "near_mint", "good", "fair"] as const;
 export type Condition = (typeof CONDITIONS)[number];
 
+export const CURRENCIES = [
+  { code: "INR", label: "Indian rupee", locale: "en-IN" },
+  { code: "USD", label: "US dollar", locale: "en-US" },
+  { code: "EUR", label: "Euro", locale: "en-IE" },
+  { code: "GBP", label: "British pound", locale: "en-GB" },
+  { code: "AED", label: "UAE dirham", locale: "en-AE" },
+  { code: "SGD", label: "Singapore dollar", locale: "en-SG" },
+  { code: "JPY", label: "Japanese yen", locale: "ja-JP" },
+] as const;
+
+export type CurrencyCode = (typeof CURRENCIES)[number]["code"];
+
 export type Loan = {
   id: string;
   person: string;
@@ -44,11 +56,25 @@ export type Profile = {
   contact: string;
   city: string;
   note: string;
+  currency: CurrencyCode;
 };
 
 export type Library = {
   profile: Profile;
   games: Game[];
+};
+
+export type Account = {
+  id: string;
+  name: string;
+  pin: string | null;
+  avatarColor: string;
+  library: Library;
+};
+
+export type AppStore = {
+  accounts: Account[];
+  currentAccountId: string | null;
 };
 
 export const STATUS_LABELS: Record<PlayStatus, string> = {

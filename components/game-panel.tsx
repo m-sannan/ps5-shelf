@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { VinylDisc } from "@/components/vinyl-disc";
+import { DiscFace } from "@/components/game-case";
 import { useLibrary } from "@/components/library-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,7 +64,9 @@ export function GamePanel({
   emptyHint: string;
   readOnly?: boolean;
 }) {
-  const { updateGame, deleteGame, addLoan, updateLoan, removeLoan } = useLibrary();
+  const { library, updateGame, deleteGame, addLoan, updateLoan, removeLoan } =
+    useLibrary();
+  const currency = library.profile.currency;
   const [person, setPerson] = useState("");
   const [amount, setAmount] = useState("");
   const [loanDate, setLoanDate] = useState("");
@@ -72,7 +74,7 @@ export function GamePanel({
 
   if (!game) {
     return (
-      <aside className="rounded-2xl border border-white/10 bg-black/25 p-6 text-sm text-muted-foreground lg:sticky lg:top-24">
+      <aside className="rounded-2xl border border-white/10 bg-black/40 p-6 text-sm text-muted-foreground lg:sticky lg:top-8">
         {emptyHint}
       </aside>
     );
@@ -111,13 +113,13 @@ export function GamePanel({
   }
 
   return (
-    <aside className="rounded-2xl border border-white/10 bg-black/30 p-5 shadow-2xl lg:sticky lg:top-24">
+    <aside className="rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl lg:sticky lg:top-8">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-amber-200/80">
-            PS5 disc
+          <p className="text-[11px] uppercase tracking-[0.22em] text-sky-300">
+            PS5 copy
           </p>
-          <h2 className="font-heading mt-1 text-2xl leading-tight">{game.title}</h2>
+          <h2 className="mt-1 text-2xl font-medium leading-tight">{game.title}</h2>
         </div>
         <Button variant="ghost" size="sm" onClick={onClose}>
           Close
@@ -125,20 +127,20 @@ export function GamePanel({
       </div>
 
       <div className="mt-5 flex items-center gap-4">
-        <VinylDisc game={game} size="sm" />
+        <DiscFace game={game} size={88} />
         <div className="space-y-2 text-sm">
-          <Badge className="bg-amber-300/15 text-amber-100">
+          <Badge className="bg-sky-400/15 text-sky-100">
             {STATUS_LABELS[game.status]}
           </Badge>
           <p className="text-muted-foreground">
             {CONDITION_LABELS[game.condition]} · bought {shortDate(game.purchaseDate)}
           </p>
           <p>
-            Paid {money(game.purchasePrice)}
+            Paid {money(game.purchasePrice, currency)}
             {game.askingPrice != null && game.status === "for_sale"
-              ? ` · asking ${money(game.askingPrice)}`
+              ? ` · asking ${money(game.askingPrice, currency)}`
               : null}
-            {game.soldPrice != null ? ` · sold ${money(game.soldPrice)}` : null}
+            {game.soldPrice != null ? ` · sold ${money(game.soldPrice, currency)}` : null}
           </p>
         </div>
       </div>
@@ -169,9 +171,9 @@ export function GamePanel({
       )}
 
       <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-        <Stat label="Paid" value={money(game.purchasePrice)} />
-        <Stat label="From loans" value={money(loanTotal(game))} />
-        <Stat label="Still in it" value={money(net)} />
+        <Stat label="Paid" value={money(game.purchasePrice, currency)} />
+        <Stat label="From loans" value={money(loanTotal(game), currency)} />
+        <Stat label="Still in it" value={money(net, currency)} />
       </div>
 
       {game.notes && (
@@ -191,7 +193,7 @@ export function GamePanel({
       )}
 
       <section className="mt-6">
-        <h3 className="text-xs uppercase tracking-[0.18em] text-amber-200/80">
+        <h3 className="text-xs uppercase tracking-[0.18em] text-sky-300">
           Loans & trades
         </h3>
         {game.loans.length === 0 ? (
@@ -209,7 +211,7 @@ export function GamePanel({
                   <div>
                     <p className="font-medium">{loan.person}</p>
                     <p className="text-xs text-muted-foreground">
-                      {shortDate(loan.date)} · {money(loan.amount)} ·{" "}
+                      {shortDate(loan.date)} · {money(loan.amount, currency)} ·{" "}
                       {loan.returned ? "returned" : "still out"}
                     </p>
                     {loan.note && (
@@ -277,15 +279,15 @@ export function GamePanel({
       </section>
 
       <section className="mt-6">
-        <h3 className="text-xs uppercase tracking-[0.18em] text-amber-200/80">
+        <h3 className="text-xs uppercase tracking-[0.18em] text-sky-300">
           Asking / sold
         </h3>
         {readOnly ? (
           <p className="mt-2 text-sm">
             {game.status === "for_sale" && game.askingPrice != null
-              ? `Asking ${money(game.askingPrice)}`
+              ? `Asking ${money(game.askingPrice, currency)}`
               : game.status === "sold" && game.soldPrice != null
-                ? `Sold for ${money(game.soldPrice)}`
+                ? `Sold for ${money(game.soldPrice, currency)}`
                 : "Not listed."}
           </p>
         ) : (
@@ -331,15 +333,16 @@ export function GamePanel({
       </section>
 
       <section className="mt-6">
-        <h3 className="text-xs uppercase tracking-[0.18em] text-amber-200/80">
-          Real photos
+        <h3 className="text-xs uppercase tracking-[0.18em] text-sky-300">
+          Artwork
         </h3>
         <div className="mt-3 grid gap-3">
           <PhotoSlot
-            label="Cover art"
+            label="Box art"
             src={game.coverImage}
             readOnly={readOnly}
             onFile={(file) => onPhoto("coverImage", file)}
+            onUrl={(url) => updateGame(game.id, { coverImage: url })}
             onClear={() => updateGame(game.id, { coverImage: null })}
           />
           <PhotoSlot
@@ -347,6 +350,7 @@ export function GamePanel({
             src={game.discPhoto}
             readOnly={readOnly}
             onFile={(file) => onPhoto("discPhoto", file)}
+            onUrl={(url) => updateGame(game.id, { discPhoto: url })}
             onClear={() => updateGame(game.id, { discPhoto: null })}
           />
         </div>
@@ -382,14 +386,17 @@ function PhotoSlot({
   src,
   readOnly,
   onFile,
+  onUrl,
   onClear,
 }: {
   label: string;
   src: string | null;
   readOnly: boolean;
   onFile: (file: File | undefined) => void;
+  onUrl: (url: string) => void;
   onClear: () => void;
 }) {
+  const [url, setUrl] = useState("");
   return (
     <div className="rounded-xl border border-white/10 p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
@@ -402,19 +409,36 @@ function PhotoSlot({
         />
       ) : (
         <div className="mt-2 flex h-24 items-center justify-center rounded-lg border border-dashed border-white/15 text-xs text-muted-foreground">
-          No photo yet
+          Upload a photo or paste a link
         </div>
       )}
       {!readOnly && (
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 grid gap-2">
           <Input
             type="file"
             accept="image/*"
             onChange={(event) => onFile(event.target.files?.[0])}
           />
+          <div className="flex gap-2">
+            <Input
+              placeholder="https:// image link"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+            />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (url.trim()) onUrl(url.trim());
+              }}
+            >
+              Use
+            </Button>
+          </div>
           {src && (
             <Button type="button" size="xs" variant="ghost" onClick={onClear}>
-              Clear
+              Clear art
             </Button>
           )}
         </div>

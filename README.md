@@ -1,18 +1,25 @@
 # Crate
 
-A physical PS5 library that looks like a vinyl crate. Track each disc you own, log money from people who borrowed it, mark whether you finished the game (including **completed, still playing**), and share a seller-facing shelf with real cover and disc photos.
+A physical PS5 library that looks like a console dashboard: a row of game cases, a glossy floor reflection, and an opening box that shows the disc.
 
-This is a local-first demo. The sample collection lives in your browser. Edit it, add photos, and use the share page as the view you send to buyers.
+## How to look at it
 
-## What you can do
+Run the app and open the preview. On first launch you pick a **local user** (like a console profile). Tap **Rohan Mehta** for the sample Mumbai shelf, or create your own.
 
-- Browse copies as spinning discs on wooden shelves
-- Open a disc for purchase price, loan history, condition, and play status
-- Log a loan with the person, date, and what they paid you
-- List a copy for sale or mark it sold
-- Upload cover art and a photo of the actual disc
-- See spend, loan income, sales, and what the shelf still cost you
-- Copy a share link to the public crate (same browser until you host it)
+- Arrow keys or Prev/Next to move along the cases
+- Click the centre case, or **Open case**, to lift the cover and see the disc
+- Upload box art and a disc photo, or paste an image link
+- **Money** tracks spend, loans, and sales in the currency you choose (Indian rupees by default)
+
+## Login
+
+There is no PlayStation Network sign-in. Users live in this browser:
+
+- Pick a profile to open that person's library
+- Optional PIN on a profile
+- **Switch user** goes back to the profile screen
+
+That keeps the first version simple. Sharing one library across phones would need a real account later.
 
 ## Run locally
 
@@ -22,9 +29,3 @@ npm run dev
 ```
 
 Open [http://localhost:43127](http://localhost:43127).
-
-## Notes
-
-- Data is stored in `localStorage` under `vinyl-ps5-library-v1`
-- The Share page is a presentation of that same library. Hosting the app (for example on Vercel) lets someone else open the URL, but they will see *their* browser storage unless you add a backend later
-- Cover art in the demo is a colored label, not licensed box art — upload your own photos of the copies you actually have

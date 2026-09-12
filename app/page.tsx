@@ -1,27 +1,26 @@
 "use client";
 
+import { CaseRail } from "@/components/case-rail";
 import { SiteHeader } from "@/components/site-header";
-import { VinylShelf } from "@/components/vinyl-shelf";
 
 export default function HomePage() {
   return (
     <div className="flex flex-1 flex-col">
       <SiteHeader showAdd />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:py-10">
-        <div className="mb-8 max-w-2xl">
-          <p className="text-[11px] uppercase tracking-[0.24em] text-amber-200/80">
-            Your copies, not a store wishlist
-          </p>
-          <h1 className="font-heading mt-2 text-4xl leading-none sm:text-5xl">
-            The crate
-          </h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            Every disc sits like a record. Open one to see what you paid, who
-            borrowed it, and whether you finished the story — even if you are
-            still playing.
-          </p>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">
+        <p className="text-center text-xs uppercase tracking-[0.28em] text-sky-300">
+          Physical copies
+        </p>
+        <h1 className="mt-2 text-center text-3xl font-medium tracking-tight sm:text-4xl">
+          Game library
+        </h1>
+        <p className="mx-auto mt-2 max-w-xl text-center text-sm text-white/60">
+          Flip through cases like the old dashboard. Click the centre copy to
+          open the box and see the disc.
+        </p>
+        <div className="mt-6">
+          <CaseRail />
         </div>
-        <VinylShelf />
       </main>
     </div>
   );

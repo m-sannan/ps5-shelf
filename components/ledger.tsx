@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { money, shortDate } from "@/lib/format";
 import { libraryStats, loanTotal } from "@/lib/stats";
-import { STATUS_LABELS } from "@/lib/types";
+import { CURRENCIES, STATUS_LABELS, type CurrencyCode } from "@/lib/types";
 
 export function Ledger() {
   const { library, ready, updateProfile, restoreDemo } = useLibrary();
+  const currency = library.profile.currency;
   const stats = libraryStats(library);
 
   if (!ready) {
@@ -23,12 +24,12 @@ export function Ledger() {
   return (
     <div className="space-y-8">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Spent on copies" value={money(stats.spent)} hint={`${stats.copies} discs ever owned`} />
-        <StatCard label="Earned from loans" value={money(stats.loaned)} hint="Cash from people who borrowed" />
-        <StatCard label="Sold" value={money(stats.soldIncome)} hint={`${stats.sold} copies moved on`} />
+        <StatCard label="Spent on copies" value={money(stats.spent, currency)} hint={`${stats.copies} discs ever owned`} />
+        <StatCard label="Earned from loans" value={money(stats.loaned, currency)} hint="Cash from people who borrowed" />
+        <StatCard label="Sold" value={money(stats.soldIncome, currency)} hint={`${stats.sold} copies moved on`} />
         <StatCard
           label="Still in the collection"
-          value={money(stats.net)}
+          value={money(stats.net, currency)}
           hint={
             stats.net >= 0
               ? "What the shelf still cost you"
@@ -39,7 +40,7 @@ export function Ledger() {
 
       <Card className="border-white/10 bg-black/25">
         <CardHeader>
-          <CardTitle className="font-heading text-xl">Seller card</CardTitle>
+          <CardTitle className="text-xl">Seller card</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5">
@@ -61,6 +62,26 @@ export function Ledger() {
                 updateProfile({ ...library.profile, city: event.target.value })
               }
             />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="currency">Currency</Label>
+            <select
+              id="currency"
+              className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
+              value={library.profile.currency}
+              onChange={(event) =>
+                updateProfile({
+                  ...library.profile,
+                  currency: event.target.value as CurrencyCode,
+                })
+              }
+            >
+              {CURRENCIES.map((item) => (
+                <option key={item.code} value={item.code}>
+                  {item.code} — {item.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="grid gap-1.5 sm:col-span-2">
             <Label htmlFor="contact">How people reach you</Label>
@@ -104,10 +125,10 @@ export function Ledger() {
                 <td className="px-4 py-3 text-muted-foreground">
                   {STATUS_LABELS[game.status]}
                 </td>
-                <td className="px-4 py-3">{money(game.purchasePrice)}</td>
-                <td className="px-4 py-3">{money(loanTotal(game))}</td>
+                <td className="px-4 py-3">{money(game.purchasePrice, currency)}</td>
+                <td className="px-4 py-3">{money(loanTotal(game), currency)}</td>
                 <td className="px-4 py-3">
-                  {game.soldPrice != null ? money(game.soldPrice) : "—"}
+                  {game.soldPrice != null ? money(game.soldPrice, currency) : "—"}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
                   {shortDate(game.purchaseDate)}
@@ -146,7 +167,7 @@ function StatCard({
         <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
           {label}
         </p>
-        <CardTitle className="font-heading text-3xl">{value}</CardTitle>
+        <CardTitle className="text-3xl">{value}</CardTitle>
       </CardHeader>
       <CardContent className="text-sm text-muted-foreground">{hint}</CardContent>
     </Card>

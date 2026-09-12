@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Fraunces, Outfit } from "next/font/google";
+import { Outfit } from "next/font/google";
 import { LibraryProvider } from "@/components/library-provider";
+import { ProfileGate } from "@/components/profile-gate";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -8,25 +9,19 @@ const outfit = Outfit({
   subsets: ["latin"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Crate — PS5 disc library",
+  title: "Crate — PS5 game library",
   description:
-    "Track physical PS5 games like a vinyl collection: loans, sale prices, play status, and real disc photos.",
+    "A PS5-style shelf of physical game cases, with loans, sale prices, and disc photos.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`dark ${outfit.variable} ${fraunces.variable} h-full antialiased`}
-    >
+    <html lang="en" className={`dark ${outfit.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
-        <LibraryProvider>{children}</LibraryProvider>
+        <LibraryProvider>
+          <ProfileGate>{children}</ProfileGate>
+        </LibraryProvider>
       </body>
     </html>
   );

@@ -88,12 +88,12 @@ export function AddGameSheet() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <Button onClick={() => setOpen(true)}>Add a disc</Button>
+      <Button onClick={() => setOpen(true)}>Add a game</Button>
       <SheetContent className="overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Add a PS5 disc</SheetTitle>
+          <SheetTitle>Add a PS5 game</SheetTitle>
           <SheetDescription>
-            Drop it on the shelf with what you paid and how far you got.
+            Put a case on the rail with what you paid and how far you got.
           </SheetDescription>
         </SheetHeader>
         <form onSubmit={onSubmit} className="grid gap-3 px-4 pb-6">
@@ -174,7 +174,7 @@ export function AddGameSheet() {
                   style={{
                     background: color,
                     outline:
-                      coverColor === color ? "2px solid #e8c57c" : undefined,
+                      coverColor === color ? "2px solid white" : undefined,
                   }}
                   aria-label={`Color ${color}`}
                 />
@@ -182,7 +182,7 @@ export function AddGameSheet() {
             </div>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="cover">Cover photo</Label>
+            <Label htmlFor="cover">Box art photo</Label>
             <Input
               id="cover"
               type="file"
@@ -190,6 +190,14 @@ export function AddGameSheet() {
               onChange={async (event) => {
                 const file = event.target.files?.[0];
                 if (file) setCoverImage(await fileToDataUrl(file));
+              }}
+            />
+            <Input
+              placeholder="Or paste an image link"
+              onBlur={(event) => {
+                if (event.target.value.trim()) {
+                  setCoverImage(event.target.value.trim());
+                }
               }}
             />
           </div>
@@ -215,7 +223,7 @@ export function AddGameSheet() {
             />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit">Put it on the shelf</Button>
+          <Button type="submit">Put it on the rail</Button>
         </form>
       </SheetContent>
     </Sheet>
