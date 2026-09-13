@@ -79,7 +79,7 @@ export function CaseRail({
         />
       )}
 
-      <div className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col">
+      <div className="relative z-10 flex min-h-[calc(100vh-6rem)] flex-col">
         <div className="flex justify-center gap-2 px-4 pt-3">
           {FILTERS.map((item) => (
             <button

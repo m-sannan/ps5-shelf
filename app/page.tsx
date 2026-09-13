@@ -7,7 +7,7 @@ export default function HomePage() {
   return (
     <div className="relative flex min-h-full flex-1 flex-col">
       <SiteHeader showAdd tone="overlay" />
-      <main className="flex-1 pt-16">
+      <main className="flex-1 pt-24">
         <CaseRail />
       </main>
     </div>
