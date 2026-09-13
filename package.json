@@ -2,6 +2,7 @@
   "name": "crate-ps5-library",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://ps5-shelf.vercel.app",
   "scripts": {
     "dev": "next dev --port 43127 --hostname 0.0.0.0",
     "build": "next build",
