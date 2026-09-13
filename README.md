@@ -21,6 +21,18 @@ There is no PlayStation Network sign-in. Users live in this browser:
 
 That keeps the first version simple. Sharing one library across phones would need a real account later.
 
+## Host it (Vercel)
+
+This is a Next.js app, so Vercel is the right host. GitHub Pages is a worse fit: it wants a static export, and this project lives on Cursor’s git remote rather than GitHub.
+
+From Cursor, use **Reconnect to Vercel** / **Publish** in this chat. After Vercel is connected, a public `*.vercel.app` URL is created.
+
+Or from a terminal in this repo:
+
+```bash
+npx vercel
+```
+
 ## Run locally
 
 ```bash
