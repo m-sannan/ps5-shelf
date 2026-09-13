@@ -33,7 +33,7 @@ async function wikiSummary(title: string): Promise<CoverHit | null> {
       thumbnail?: { source?: string };
     };
     const raw = data.originalimage?.source ?? data.thumbnail?.source;
-    if (!raw || raw.endsWith(".svg")) return null;
+    if (!raw || raw.toLowerCase().includes(".svg")) return null;
     return {
       url: cleanWiki(raw),
       label: data.title ?? title,
@@ -87,7 +87,7 @@ async function searchWikipedia(query: string): Promise<CoverHit[]> {
 
   for (const page of pages) {
     const raw = page.original?.source ?? page.thumbnail?.source;
-    if (!raw || raw.endsWith(".svg")) continue;
+    if (!raw || raw.toLowerCase().includes(".svg")) continue;
     hits.push({
       url: cleanWiki(raw),
       label: page.title ?? query,
@@ -136,6 +136,7 @@ export async function searchCovers(query: string): Promise<CoverHit[]> {
     if (result.status !== "fulfilled") continue;
     for (const hit of result.value) {
       if (seen.has(hit.url)) continue;
+      if (hit.url.toLowerCase().includes(".svg")) continue;
       seen.add(hit.url);
       hits.push(hit);
     }

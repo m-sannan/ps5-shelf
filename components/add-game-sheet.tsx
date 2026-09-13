@@ -99,21 +99,24 @@ export function AddGameSheet() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <Button onClick={() => setOpen(true)} size="sm">
+      <Button type="button" onClick={() => setOpen(true)} size="sm">
         <span className="sm:hidden">Add</span>
         <span className="hidden sm:inline">Add a game</span>
       </Button>
       <SheetContent
-        side="bottom"
-        className="h-[92dvh] overflow-y-auto rounded-t-2xl sm:h-full sm:rounded-none"
+        side="right"
+        className="flex h-dvh max-h-dvh w-full max-w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
       >
-        <SheetHeader>
+        <SheetHeader className="shrink-0 pr-12">
           <SheetTitle>Add a PS5 game</SheetTitle>
           <SheetDescription>
             Put a copy on the shelf with what you paid and how far you got.
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={onSubmit} className="grid gap-4 px-4 pb-8">
+        <form
+          onSubmit={onSubmit}
+          className="grid min-h-0 min-w-0 flex-1 gap-4 overflow-y-auto px-4 pb-8"
+        >
           <div className="grid gap-1.5">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -133,7 +136,7 @@ export function AddGameSheet() {
                   : coverImage
               }
               alt="Selected box art"
-              className="h-36 w-24 rounded-md object-cover"
+              className="h-40 w-28 max-w-full rounded-md object-cover"
             />
           )}
           <div className="grid gap-4">
