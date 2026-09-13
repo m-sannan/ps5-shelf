@@ -124,12 +124,14 @@ export function CaseRail({
                 style={{
                   zIndex: 80 - abs,
                   transform: `
-                    translateX(${offset * 108}px)
-                    translateZ(${offset === 0 ? 90 : -abs * 70}px)
-                    rotateY(${offset * -48}deg)
-                    scale(${offset === 0 ? 1.22 : Math.max(0.78, 0.96 - abs * 0.04)})
+                    translate(-50%, -50%)
+                    translateX(${offset * 132}px)
+                    translateZ(${offset === 0 ? 140 : -abs * 95}px)
+                    rotateY(${offset * -55}deg)
+                    scale(${offset === 0 ? 1.12 : Math.max(0.84, 0.97 - abs * 0.03)})
                   `,
                   opacity: abs > 5 ? 0 : 1,
+                  pointerEvents: abs > 5 ? "none" : "auto",
                 }}
               >
                 <div className="coverflow-stack">
