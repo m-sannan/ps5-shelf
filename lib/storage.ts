@@ -2,7 +2,7 @@ import { SEED_LIBRARY } from "./seed";
 import { uid } from "./format";
 import type { Account, AppStore, Library } from "./types";
 
-const KEY = "crate-library-v2";
+const KEY = "crate-library-v3";
 
 let cached: AppStore | null = null;
 const listeners = new Set<() => void>();

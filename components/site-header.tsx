@@ -18,7 +18,7 @@ export function SiteHeader({ showAdd = false }: { showAdd?: boolean }) {
   const { account, signOut } = useLibrary();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#05070d]/70 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-black/30 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <Link href="/" className="text-xl font-medium tracking-tight">

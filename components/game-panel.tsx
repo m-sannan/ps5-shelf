@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArtworkPicker } from "@/components/artwork-picker";
 import { DiscFace } from "@/components/game-case";
 import { useLibrary } from "@/components/library-provider";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { artSrc } from "@/lib/art-src";
 import { fileToDataUrl } from "@/lib/file";
 import { money, shortDate } from "@/lib/format";
 import { loanTotal } from "@/lib/stats";
@@ -336,6 +338,15 @@ export function GamePanel({
         <h3 className="text-xs uppercase tracking-[0.18em] text-sky-300">
           Artwork
         </h3>
+        {!readOnly && (
+          <div className="mt-3">
+            <ArtworkPicker
+              title={game.title}
+              current={game.coverImage}
+              onPick={(url) => updateGame(game.id, { coverImage: url })}
+            />
+          </div>
+        )}
         <div className="mt-3 grid gap-3">
           <PhotoSlot
             label="Box art"
@@ -403,7 +414,7 @@ function PhotoSlot({
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={src}
+          src={artSrc(src)}
           alt={label}
           className="mt-2 h-40 w-full rounded-lg object-cover"
         />

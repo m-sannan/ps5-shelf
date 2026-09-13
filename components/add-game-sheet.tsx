@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArtworkPicker } from "@/components/artwork-picker";
 import { useLibrary } from "@/components/library-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,8 +67,18 @@ export function AddGameSheet() {
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (!title.trim()) {
-      setError("Give the disc a title.");
+      setError("Give the game a title.");
       return;
+    }
+    let art = coverImage;
+    if (!art) {
+      try {
+        const response = await fetch(`/api/covers?q=${encodeURIComponent(title.trim())}`);
+        const data = (await response.json()) as { covers?: { url: string }[] };
+        art = data.covers?.[0]?.url ?? null;
+      } catch {
+        art = null;
+      }
     }
     addGame({
       title: title.trim(),
@@ -79,7 +90,7 @@ export function AddGameSheet() {
       condition,
       notes: notes.trim(),
       coverColor,
-      coverImage,
+      coverImage: art,
       discPhoto,
     });
     reset();
@@ -106,6 +117,7 @@ export function AddGameSheet() {
               placeholder="Astro Bot"
             />
           </div>
+          <ArtworkPicker title={title} current={coverImage} onPick={setCoverImage} />
           <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1.5">
               <Label htmlFor="price">What you paid</Label>

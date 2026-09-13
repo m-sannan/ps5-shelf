@@ -21,7 +21,8 @@ export const SEED_LIBRARY: Library = {
       condition: "mint",
       notes: "Finished the story. Still dropping in for extra levels.",
       coverColor: "#3b82f6",
-      coverImage: null,
+      coverImage:
+        "https://upload.wikimedia.org/wikipedia/en/a/a9/Astro_Bot_cover_art.jpg",
       discPhoto: null,
       loans: [
         {
@@ -46,7 +47,8 @@ export const SEED_LIBRARY: Library = {
       condition: "near_mint",
       notes: "Case and disc clean. Includes original insert.",
       coverColor: "#dc2626",
-      coverImage: null,
+      coverImage:
+        "https://upload.wikimedia.org/wikipedia/en/0/0f/SpiderMan2PS5BoxArt.jpeg",
       discPhoto: null,
       loans: [
         {
@@ -79,7 +81,8 @@ export const SEED_LIBRARY: Library = {
       condition: "good",
       notes: "Mid-game. Faint scuff on the disc that does not affect play.",
       coverColor: "#7c3aed",
-      coverImage: null,
+      coverImage:
+        "https://upload.wikimedia.org/wikipedia/en/0/00/Final_Fantasy_XVI_cover_art.png",
       discPhoto: null,
       loans: [],
     },
@@ -95,7 +98,8 @@ export const SEED_LIBRARY: Library = {
       condition: "good",
       notes: "Sold after finishing the story.",
       coverColor: "#0ea5e9",
-      coverImage: null,
+      coverImage:
+        "https://upload.wikimedia.org/wikipedia/en/e/ee/God_of_War_Ragnar%C3%B6k_cover.jpg",
       discPhoto: null,
       loans: [
         {
@@ -120,7 +124,8 @@ export const SEED_LIBRARY: Library = {
       condition: "near_mint",
       notes: "Currently with Devon.",
       coverColor: "#b45309",
-      coverImage: null,
+      coverImage:
+        "https://upload.wikimedia.org/wikipedia/en/d/df/Resident_Evil_4_remake_cover_art.jpg",
       discPhoto: null,
       loans: [
         {
@@ -145,7 +150,8 @@ export const SEED_LIBRARY: Library = {
       condition: "mint",
       notes: "Story finished. On the shelf until the next NG+ itch.",
       coverColor: "#059669",
-      coverImage: null,
+      coverImage:
+        "https://upload.wikimedia.org/wikipedia/en/9/91/Returnal_cover_art.jpg",
       discPhoto: null,
       loans: [],
     },
@@ -161,7 +167,8 @@ export const SEED_LIBRARY: Library = {
       condition: "mint",
       notes: "Reprint. Full game on disc.",
       coverColor: "#eab308",
-      coverImage: null,
+      coverImage:
+        "https://upload.wikimedia.org/wikipedia/en/1/11/Demons_Souls_remake_cover_art.jpg",
       discPhoto: null,
       loans: [],
     },
@@ -177,7 +184,8 @@ export const SEED_LIBRARY: Library = {
       condition: "mint",
       notes: "Haven't cracked it yet.",
       coverColor: "#ec4899",
-      coverImage: null,
+      coverImage:
+        "https://upload.wikimedia.org/wikipedia/en/6/63/Stellar_Blade_Pre_Order_Box.png",
       discPhoto: null,
       loans: [],
     },
