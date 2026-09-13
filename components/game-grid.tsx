@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { DiscFace } from "@/components/game-case";
 import { GamePanel } from "@/components/game-panel";
 import { useLibrary } from "@/components/library-provider";
@@ -133,9 +134,10 @@ export function GameGrid({
         </div>
       )}
 
-      {opened && (
+      {opened &&
+        createPortal(
         <div
-          className="fixed inset-0 z-50 flex flex-col bg-[#161616] sm:inset-5 sm:rounded-[22px] sm:border sm:border-white/10 sm:shadow-2xl"
+          className="fixed inset-0 z-50 flex h-dvh flex-col bg-[#161616] sm:inset-5 sm:h-auto sm:rounded-[22px] sm:border sm:border-white/10 sm:shadow-2xl"
           role="dialog"
           aria-label={opened.title}
         >
@@ -185,7 +187,8 @@ export function GameGrid({
               />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
