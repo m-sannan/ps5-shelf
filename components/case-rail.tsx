@@ -90,10 +90,10 @@ export function CaseRail({
                 setFocus(0);
                 setOpened(false);
               }}
-              className={`rounded-full px-3 py-1 text-xs ${
+              className={`rounded-full px-3 py-1 text-xs backdrop-blur-sm ${
                 filter === item.id
                   ? "bg-white text-black"
-                  : "bg-black/40 text-white/85"
+                  : "bg-black/55 text-white/90"
               }`}
             >
               {item.label}
