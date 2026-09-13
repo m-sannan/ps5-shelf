@@ -36,11 +36,11 @@ function SiteHeader({ showAdd }: { showAdd?: boolean }) {
 
   return (
     <header className="shrink-0 border-b border-white/8 px-4 py-3 sm:px-6">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center gap-3">
         <Link href="/" className="text-[15px] font-medium tracking-tight">
           Crate
         </Link>
-        <nav className="flex flex-1 flex-wrap items-center gap-1.5">
+        <nav className="hidden flex-1 items-center gap-1.5 sm:flex">
           {LINKS.map((link) => (
             <Link
               key={link.href}
@@ -56,7 +56,7 @@ function SiteHeader({ showAdd }: { showAdd?: boolean }) {
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           {showAdd && <AddGameSheet />}
           {account && (
             <Button variant="ghost" size="sm" onClick={signOut}>
@@ -65,6 +65,22 @@ function SiteHeader({ showAdd }: { showAdd?: boolean }) {
           )}
         </div>
       </div>
+      <nav className="mt-2 flex flex-wrap gap-1.5 sm:hidden">
+        {LINKS.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={cn(
+              "rounded-full px-3 py-1 text-sm",
+              pathname === link.href
+                ? "bg-[#2a2a2c] text-white"
+                : "text-white/50 hover:text-white",
+            )}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </nav>
     </header>
   );
 }
