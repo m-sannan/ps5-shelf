@@ -43,7 +43,7 @@ function FieldSelect({
         id={id}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
+        className="h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -60,11 +60,13 @@ export function GamePanel({
   onClose,
   emptyHint,
   readOnly = false,
+  hideChrome = false,
 }: {
   game: Game | null;
   onClose: () => void;
   emptyHint: string;
   readOnly?: boolean;
+  hideChrome?: boolean;
 }) {
   const { library, updateGame, deleteGame, addLoan, updateLoan, removeLoan } =
     useLibrary();
@@ -115,37 +117,51 @@ export function GamePanel({
   }
 
   return (
-    <aside className="rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl lg:sticky lg:top-8">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-sky-300">
-            PS5 copy
-          </p>
-          <h2 className="mt-1 text-2xl font-medium leading-tight">{game.title}</h2>
-        </div>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          Close
-        </Button>
-      </div>
+    <aside className={hideChrome ? "" : "rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl"}>
+      {!hideChrome && (
+        <>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+                PS5 copy
+              </p>
+              <h2 className="mt-1 text-2xl font-medium leading-tight">{game.title}</h2>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+          <div className="mt-5 flex items-center gap-4">
+            <DiscFace game={game} size={88} />
+            <div className="space-y-2 text-sm">
+              <Badge className="bg-white/10 text-white">
+                {STATUS_LABELS[game.status]}
+              </Badge>
+              <p className="text-muted-foreground">
+                {CONDITION_LABELS[game.condition]} · bought {shortDate(game.purchaseDate)}
+              </p>
+              <p>
+                Paid {money(game.purchasePrice, currency)}
+                {game.askingPrice != null && game.status === "for_sale"
+                  ? ` · asking ${money(game.askingPrice, currency)}`
+                  : null}
+                {game.soldPrice != null ? ` · sold ${money(game.soldPrice, currency)}` : null}
+              </p>
+            </div>
+          </div>
+        </>
+      )}
 
-      <div className="mt-5 flex items-center gap-4">
-        <DiscFace game={game} size={88} />
-        <div className="space-y-2 text-sm">
-          <Badge className="bg-sky-400/15 text-sky-100">
+      {hideChrome && (
+        <div className="mb-5 flex flex-wrap items-center gap-2 text-sm text-white/55">
+          <Badge className="bg-white/10 text-white">
             {STATUS_LABELS[game.status]}
           </Badge>
-          <p className="text-muted-foreground">
+          <span>
             {CONDITION_LABELS[game.condition]} · bought {shortDate(game.purchaseDate)}
-          </p>
-          <p>
-            Paid {money(game.purchasePrice, currency)}
-            {game.askingPrice != null && game.status === "for_sale"
-              ? ` · asking ${money(game.askingPrice, currency)}`
-              : null}
-            {game.soldPrice != null ? ` · sold ${money(game.soldPrice, currency)}` : null}
-          </p>
+          </span>
         </div>
-      </div>
+      )}
 
       {!readOnly && (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">

@@ -11,9 +11,11 @@ On first launch pick a **local user**. Tap **Sannan** for the sample shelf, or c
 - **Money** is the same window: spend, recoveries, and transactions
 - **Share** is a seller view of copies that are still around
 
-## Login
+## Sharing
 
-There is no PlayStation Network sign-in. Users live in this browser.
+The live site can be opened by anyone. Each person gets a **local profile in their own browser** (Create user). There is no cloud account, so libraries do not sync between phones, and clearing site data wipes the shelf.
+
+Send the Vercel URL. They tap **Create user**, optionally copy the sample collection, and start adding discs on that device.
 
 ## Run locally
 

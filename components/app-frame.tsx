@@ -21,8 +21,8 @@ export function AppFrame({
   showAdd?: boolean;
 }) {
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] px-3 py-3 sm:px-5 sm:py-5">
-      <div className="mx-auto flex min-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-[22px] border border-white/10 bg-[#161616] shadow-[0_30px_80px_rgba(0,0,0,0.45)] sm:min-h-[calc(100dvh-2.5rem)]">
+    <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] sm:px-5 sm:py-5">
+      <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-1 flex-col overflow-hidden bg-[#161616] sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10 sm:shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
         <SiteHeader showAdd={showAdd} />
         <div className="flex-1 overflow-auto px-4 pb-6 pt-4 sm:px-6">{children}</div>
       </div>
@@ -35,7 +35,7 @@ function SiteHeader({ showAdd }: { showAdd?: boolean }) {
   const { account, signOut } = useLibrary();
 
   return (
-    <header className="shrink-0 border-b border-white/8 px-4 py-3 sm:px-6">
+    <header className="shrink-0 border-b border-white/8 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pt-3">
       <div className="flex items-center gap-3">
         <Link href="/" className="text-[15px] font-medium tracking-tight">
           Crate

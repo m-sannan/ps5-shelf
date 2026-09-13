@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DiscFace, GameCase } from "@/components/game-case";
+import { DiscFace } from "@/components/game-case";
 import { GamePanel } from "@/components/game-panel";
 import { useLibrary } from "@/components/library-provider";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ export function GameGrid({
   return (
     <div>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {FILTERS.map((item) => (
             <button
               key={item.id}
@@ -61,7 +61,7 @@ export function GameGrid({
                 setFilter(item.id);
                 setOpenedId(null);
               }}
-              className={`rounded-full px-3 py-1 text-sm ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm ${
                 filter === item.id
                   ? "bg-[#2f2f32] text-white"
                   : "text-white/45 hover:text-white"
@@ -75,7 +75,7 @@ export function GameGrid({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search your games"
-          className="h-9 max-w-xs rounded-full bg-black/30"
+          className="h-10 w-full rounded-full bg-black/30 sm:max-w-xs"
         />
       </div>
 
@@ -91,7 +91,7 @@ export function GameGrid({
           </p>
         </div>
       ) : (
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {games.map((game) => (
             <button
               key={game.id}
@@ -134,37 +134,56 @@ export function GameGrid({
       )}
 
       {opened && (
-        <div className="case-overlay" role="dialog" aria-label={opened.title}>
-          {opened.coverImage && (
-            <div
-              className="aurora-hero"
-              style={{ backgroundImage: `url(${artSrc(opened.coverImage)})` }}
-            />
-          )}
-          <div className="relative z-10 mx-auto grid max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-start">
-            <div>
-              <p className="text-xs uppercase tracking-[0.28em] text-sky-200">
-                PS5 copy
-              </p>
-              <h2 className="mt-2 text-3xl font-semibold">{opened.title}</h2>
-              <div className="keep-case mt-8 opened">
-                <div className="keep-tray">
-                  <DiscFace game={opened} size={168} />
-                </div>
-                <div className="keep-lid">
-                  <GameCase game={opened} size="lg" />
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-[#161616] sm:inset-5 sm:rounded-[22px] sm:border sm:border-white/10 sm:shadow-2xl"
+          role="dialog"
+          aria-label={opened.title}
+        >
+          <div className="flex items-center gap-3 border-b border-white/8 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-3">
+            <Button variant="outline" size="sm" onClick={() => setOpenedId(null)}>
+              Back
+            </Button>
+            <h2 className="min-w-0 truncate text-base font-medium">{opened.title}</h2>
+          </div>
+          <div className="flex-1 overflow-auto px-4 py-5 pb-10 sm:px-6">
+            <div className="mx-auto flex max-w-lg items-end gap-4">
+              <div className="w-28 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 sm:w-36">
+                <div className="aspect-[3/4]">
+                  {opened.coverImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={artSrc(opened.coverImage)}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div
+                      className="flex h-full items-end p-2 text-xs font-semibold"
+                      style={{
+                        background: `linear-gradient(165deg, ${opened.coverColor} 0%, #0b0b0d 80%)`,
+                      }}
+                    >
+                      {opened.title}
+                    </div>
+                  )}
                 </div>
               </div>
-              <Button className="mt-6" variant="outline" onClick={() => setOpenedId(null)}>
-                Back to library
-              </Button>
+              <div>
+                <p className="mb-2 text-xs uppercase tracking-[0.18em] text-white/35">
+                  Disc
+                </p>
+                <DiscFace game={opened} size={108} />
+              </div>
             </div>
-            <GamePanel
-              game={opened}
-              readOnly={readOnly}
-              onClose={() => setOpenedId(null)}
-              emptyHint=""
-            />
+            <div className="mx-auto mt-6 max-w-lg">
+              <GamePanel
+                game={opened}
+                readOnly={readOnly}
+                hideChrome
+                onClose={() => setOpenedId(null)}
+                emptyHint=""
+              />
+            </div>
           </div>
         </div>
       )}

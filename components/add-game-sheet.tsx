@@ -99,8 +99,14 @@ export function AddGameSheet() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <Button onClick={() => setOpen(true)}>Add a game</Button>
-      <SheetContent className="overflow-y-auto">
+      <Button onClick={() => setOpen(true)} size="sm">
+        <span className="sm:hidden">Add</span>
+        <span className="hidden sm:inline">Add a game</span>
+      </Button>
+      <SheetContent
+        side="bottom"
+        className="h-[92dvh] overflow-y-auto rounded-t-2xl sm:h-full sm:rounded-none"
+      >
         <SheetHeader>
           <SheetTitle>Add a PS5 game</SheetTitle>
           <SheetDescription>
