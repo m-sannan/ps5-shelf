@@ -54,8 +54,9 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-full flex-1 flex-col items-center justify-center px-4 py-16">
-      <p className="text-xs uppercase tracking-[0.32em] text-sky-300">
+    <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] px-3 py-3 sm:px-5 sm:py-5">
+      <div className="mx-auto flex min-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-1 flex-col items-center justify-center rounded-[22px] border border-white/10 bg-[#161616] px-4 py-12 sm:min-h-[calc(100dvh-2.5rem)]">
+      <p className="text-xs uppercase tracking-[0.32em] text-white/40">
         PlayStation library
       </p>
       <h1 className="mt-3 text-4xl font-medium tracking-tight sm:text-5xl">
@@ -137,6 +138,7 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
           Create user
         </Button>
       </form>
+      </div>
     </div>
   );
 }

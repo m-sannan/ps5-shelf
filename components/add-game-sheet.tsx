@@ -104,7 +104,7 @@ export function AddGameSheet() {
         <SheetHeader>
           <SheetTitle>Add a PS5 game</SheetTitle>
           <SheetDescription>
-            Put a case on the rail with what you paid and how far you got.
+            Put a copy on the shelf with what you paid and how far you got.
           </SheetDescription>
         </SheetHeader>
         <form onSubmit={onSubmit} className="grid gap-4 px-4 pb-8">

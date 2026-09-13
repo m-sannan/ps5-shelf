@@ -1,23 +1,19 @@
 # Crate
 
-A physical PS5 library with an Aurora-style coverflow of game cases, plus a light wallet for spend, loans, and sales.
+A local PS5 disc library: box-art posters in a letterboxed window, plus loans, sale prices, and a money ledger in the same chrome.
 
 ## How to look at it
 
-Run the app and open the preview. On first launch you pick a **local user**. Tap **Sannan** for the sample shelf, or create your own.
+On first launch pick a **local user**. Tap **Sannan** for the sample shelf, or create your own.
 
-- Arrow keys, swipe, or the A/B/X/Y row to move along the cases
-- Click the centre case, or **Open**, to lift the cover and see the disc
-- Upload box art and a disc photo, or search the web for covers
-- **Money** is a wallet view of spend, loans, and sales (Indian rupees by default)
+- Browse the poster grid, filter, or search
+- Click a cover to open the case, disc, loans, and sale fields
+- **Money** is the same window: spend, recoveries, and transactions
+- **Share** is a seller view of copies that are still around
 
 ## Login
 
-There is no PlayStation Network sign-in. Users live in this browser:
-
-- Pick a profile to open that person's library
-- Optional PIN on a profile
-- **Switch user** goes back to the profile screen
+There is no PlayStation Network sign-in. Users live in this browser.
 
 ## Run locally
 
