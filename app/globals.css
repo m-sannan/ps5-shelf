@@ -219,12 +219,65 @@
     mask-image: linear-gradient(#000, transparent 68%);
   }
 
-  .bluray-disc {
+  .ps-disc {
+    position: relative;
+    overflow: hidden;
     border-radius: 50%;
-    background:
-      radial-gradient(circle at 50% 50%, transparent 20%, rgba(255, 255, 255, 0.35) 21%, transparent 22%),
-      conic-gradient(from 120deg, #9ad7ff, #d7b3ff, #7ee0c8, #8eb8ff, #9ad7ff);
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+    background: #111;
+    box-shadow:
+      0 18px 40px rgba(0, 0, 0, 0.55),
+      inset 0 0 0 2px rgba(210, 220, 230, 0.55);
+  }
+
+  .ps-disc-art {
+    position: absolute;
+    inset: 3%;
+    width: 94%;
+    height: 94%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .ps-disc-print {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 10px rgba(0, 0, 0, 0.18);
+  }
+
+  .ps-disc-hub {
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 22%;
+    height: 22%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, transparent 42%, rgba(0, 0, 0, 0.55) 43%, rgba(20, 24, 32, 0.92) 70%);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+  }
+
+  .ps-disc-hole {
+    pointer-events: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8%;
+    height: 8%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: #05070c;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  }
+
+  .ps-disc-shine {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(125deg, rgba(255, 255, 255, 0.28) 0%, transparent 36%, transparent 62%, rgba(255, 255, 255, 0.08) 100%);
   }
 
   .keep-case {

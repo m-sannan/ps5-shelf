@@ -100,14 +100,14 @@ export function AddGameSheet() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <Button onClick={() => setOpen(true)}>Add a game</Button>
-      <SheetContent className="overflow-y-auto sm:max-w-md">
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Add a PS5 game</SheetTitle>
           <SheetDescription>
             Put a case on the rail with what you paid and how far you got.
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={onSubmit} className="grid gap-3 px-4 pb-6">
+        <form onSubmit={onSubmit} className="grid gap-4 px-4 pb-8">
           <div className="grid gap-1.5">
             <Label htmlFor="title">Title</Label>
             <Input
@@ -118,14 +118,26 @@ export function AddGameSheet() {
             />
           </div>
           <ArtworkPicker title={title} current={coverImage} onPick={setCoverImage} />
-          <div className="grid grid-cols-2 gap-2">
+          {coverImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={
+                coverImage.startsWith("http")
+                  ? `/api/art?url=${encodeURIComponent(coverImage)}`
+                  : coverImage
+              }
+              alt="Selected box art"
+              className="h-36 w-24 rounded-md object-cover"
+            />
+          )}
+          <div className="grid gap-4">
             <div className="grid gap-1.5">
-              <Label htmlFor="price">What you paid</Label>
+              <Label htmlFor="price">What you paid (₹)</Label>
               <Input
                 id="price"
                 type="number"
                 min="0"
-                step="0.01"
+                step="1"
                 value={purchasePrice}
                 onChange={(event) => setPurchasePrice(event.target.value)}
               />
@@ -139,13 +151,11 @@ export function AddGameSheet() {
                 onChange={(event) => setPurchaseDate(event.target.value)}
               />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
             <div className="grid gap-1.5">
               <Label htmlFor="new-status">Status</Label>
               <select
                 id="new-status"
-                className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
+                className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
                 value={status}
                 onChange={(event) => setStatus(event.target.value as PlayStatus)}
               >
@@ -160,7 +170,7 @@ export function AddGameSheet() {
               <Label htmlFor="new-condition">Condition</Label>
               <select
                 id="new-condition"
-                className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
+                className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
                 value={condition}
                 onChange={(event) =>
                   setCondition(event.target.value as Condition)

@@ -130,7 +130,7 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
             checked={useSample}
             onChange={(event) => setUseSample(event.target.checked)}
           />
-          Start with the sample Mumbai shelf
+          Start with the sample collection
         </label>
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="w-full">

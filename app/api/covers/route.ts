@@ -10,9 +10,10 @@ export async function GET(request: NextRequest) {
     const covers = await searchCovers(q);
     return NextResponse.json({ covers });
   } catch (error) {
-    return NextResponse.json(
-      { covers: [], error: error instanceof Error ? error.message : "search failed" },
-      { status: 500 },
-    );
+    console.error(error);
+    return NextResponse.json({
+      covers: [],
+      error: "Search failed. Try a shorter title.",
+    });
   }
 }

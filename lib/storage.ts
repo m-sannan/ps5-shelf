@@ -2,15 +2,15 @@ import { SEED_LIBRARY } from "./seed";
 import { uid } from "./format";
 import type { Account, AppStore, Library } from "./types";
 
-const KEY = "crate-library-v3";
+const KEY = "crate-library-v4";
 
 let cached: AppStore | null = null;
 const listeners = new Set<() => void>();
 
 function demoAccount(): Account {
   return {
-    id: "demo-rohan",
-    name: "Rohan Mehta",
+    id: "demo-sannan",
+    name: "Sannan",
     pin: null,
     avatarColor: "#3b82f6",
     library: structuredClone(SEED_LIBRARY),
@@ -58,8 +58,8 @@ export function getStoreSnapshot(): AppStore {
 const SERVER_STORE: AppStore = {
   accounts: [
     {
-      id: "demo-rohan",
-      name: "Rohan Mehta",
+      id: "demo-sannan",
+      name: "Sannan",
       pin: null,
       avatarColor: "#3b82f6",
       library: SEED_LIBRARY,

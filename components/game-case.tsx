@@ -91,16 +91,20 @@ export function GameCase({
 export function DiscFace({ game, size = 180 }: { game: Game; size?: number }) {
   const art = game.discPhoto || game.coverImage;
   return (
-    <div className="bluray-disc relative" style={{ width: size, height: size }}>
-      <span
-        className="absolute inset-[22%] overflow-hidden rounded-full"
-        style={{
-          background: art
-            ? `center / cover no-repeat url(${artSrc(art)})`
-            : `linear-gradient(160deg, ${game.coverColor}, #111)`,
-        }}
-      />
-      <span className="absolute left-1/2 top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0b0d12] ring-1 ring-white/40" />
+    <div className="ps-disc" style={{ width: size, height: size }}>
+      {art ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={artSrc(art)} alt="" className="ps-disc-art" />
+      ) : (
+        <span
+          className="ps-disc-art block"
+          style={{ background: `linear-gradient(160deg, ${game.coverColor}, #111)` }}
+        />
+      )}
+      <span className="ps-disc-print" />
+      <span className="ps-disc-hub" />
+      <span className="ps-disc-hole" />
+      <span className="ps-disc-shine" />
     </div>
   );
 }

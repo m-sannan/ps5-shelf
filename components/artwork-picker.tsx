@@ -15,22 +15,32 @@ export function ArtworkPicker({
   current: string | null;
   onPick: (url: string) => void;
 }) {
-  const [query, setQuery] = useState(title);
+  const [query, setQuery] = useState("");
   const [hits, setHits] = useState<CoverHit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function search(event?: React.FormEvent) {
-    event?.preventDefault();
+  async function search() {
     const q = query.trim() || title;
-    if (q.length < 2) return;
+    if (q.length < 2) {
+      setError("Type a title first.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
       const response = await fetch(`/api/covers?q=${encodeURIComponent(q)}`);
-      const data = (await response.json()) as { covers?: CoverHit[]; error?: string };
-      setHits(data.covers ?? []);
-      if (!data.covers?.length) setError("No box art found. Try a shorter name.");
+      const text = await response.text();
+      let data: { covers?: CoverHit[]; error?: string } = {};
+      try {
+        data = JSON.parse(text) as { covers?: CoverHit[]; error?: string };
+      } catch {
+        setError("Search failed. Try again.");
+        return;
+      }
+      const covers = data.covers ?? [];
+      setHits(covers);
+      if (!covers.length) setError(data.error || "No box art found. Try a shorter name.");
     } catch {
       setError("Could not search right now.");
     } finally {
@@ -40,22 +50,28 @@ export function ArtworkPicker({
 
   return (
     <div className="space-y-3">
-      <form onSubmit={search} className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <Input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search box art"
+          placeholder={title || "Search box art"}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void search();
+            }
+          }}
         />
-        <Button type="submit" size="sm" disabled={loading}>
+        <Button type="button" size="sm" disabled={loading} onClick={() => void search()}>
           {loading ? "Searching…" : "Find art"}
         </Button>
-      </form>
+      </div>
       {error && <p className="text-xs text-destructive">{error}</p>}
       {hits.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {hits.map((hit) => (
+        <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
+          {hits.map((hit, index) => (
             <button
-              key={hit.url}
+              key={`${hit.url}-${index}`}
               type="button"
               onClick={() => onPick(hit.url)}
               className={`overflow-hidden rounded-md ring-2 ${
