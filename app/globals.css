@@ -158,6 +158,92 @@
       linear-gradient(180deg, rgba(10, 40, 90, 0.25), rgba(2, 6, 14, 0.5));
   }
 
+  .aurora-stage {
+    position: relative;
+    min-height: 100%;
+    overflow: hidden;
+  }
+
+  .aurora-hero {
+    position: absolute;
+    inset: -18%;
+    background-size: cover;
+    background-position: center 20%;
+    filter: blur(10px) saturate(1.45);
+    transform: scale(1.12);
+  }
+
+  .aurora-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(4, 8, 18, 0.18) 0%,
+      rgba(4, 8, 18, 0.22) 38%,
+      rgba(4, 8, 18, 0.78) 100%
+    );
+  }
+
+  .aurora-titlebar {
+    text-align: center;
+    background: rgba(22, 22, 24, 0.94);
+    padding: 14px 16px 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .aurora-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem 1.35rem;
+    background: rgba(10, 10, 12, 0.96);
+    padding: 10px 16px 18px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  .aurora-actions button {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .aurora-key {
+    display: inline-flex;
+    width: 1.2rem;
+    height: 1.2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    margin-right: 0.4rem;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .aurora-key-a {
+    background: #22c55e;
+    color: #052e16;
+  }
+  .aurora-key-b {
+    background: #ef4444;
+    color: #fff;
+  }
+  .aurora-key-x {
+    background: #38bdf8;
+    color: #082f49;
+  }
+  .aurora-key-y {
+    background: #facc15;
+    color: #422006;
+  }
+
+  .aurora-stage .coverflow {
+    min-height: 440px;
+    height: auto;
+    overflow: visible;
+    perspective: 1800px;
+  }
+
   .game-case {
     transform-style: preserve-3d;
   }
@@ -171,13 +257,32 @@
   }
 
   .game-case-face {
-    display: block;
+    display: flex;
+    flex-direction: column;
     height: 100%;
     width: 100%;
     overflow: hidden;
     border-radius: 3px 8px 8px 3px;
     box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55);
     background: #0b1220;
+  }
+
+  .game-case-banner {
+    display: flex;
+    height: 12%;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8%;
+    background: linear-gradient(180deg, #3aa0ff 0%, #0054d4 100%);
+    color: white;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .game-case-art {
+    min-height: 0;
+    flex: 1;
   }
 
   .game-case-selected .game-case-face {

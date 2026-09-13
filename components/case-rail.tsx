@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { artSrc } from "@/lib/art-src";
 import { DiscFace, GameCase } from "@/components/game-case";
 import { GamePanel } from "@/components/game-panel";
@@ -11,10 +11,8 @@ import { STATUS_LABELS, type PlayStatus } from "@/lib/types";
 
 const FILTERS: { id: "all" | PlayStatus; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "in_progress", label: "Playing" },
-  { id: "completed_still_playing", label: "Still playing" },
-  { id: "for_sale", label: "For sale" },
   { id: "lent_out", label: "Lent out" },
+  { id: "for_sale", label: "For sale" },
   { id: "sold", label: "Sold" },
 ];
 
@@ -29,6 +27,7 @@ export function CaseRail({
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [focus, setFocus] = useState(0);
   const [opened, setOpened] = useState(false);
+  const touchX = useRef<number | null>(null);
 
   const source = gamesProp ?? library.games;
   const games = useMemo(() => {
@@ -40,14 +39,19 @@ export function CaseRail({
   const selected = games[safeFocus] ?? null;
   const backdrop = selected?.coverImage ? artSrc(selected.coverImage) : "";
 
+  function move(delta: number) {
+    setFocus((value) => Math.min(games.length - 1, Math.max(0, value + delta)));
+    setOpened(false);
+  }
+
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === "ArrowRight") {
-        setFocus((value) => Math.min(games.length - 1, value + 1));
+        setFocus((value) => Math.min(games.length - 1, Math.max(0, value + 1)));
         setOpened(false);
       }
       if (event.key === "ArrowLeft") {
-        setFocus((value) => Math.max(0, value - 1));
+        setFocus((value) => Math.min(games.length - 1, Math.max(0, value - 1)));
         setOpened(false);
       }
       if (event.key === "Enter" && selected) setOpened(true);
@@ -59,25 +63,24 @@ export function CaseRail({
 
   if (games.length === 0) {
     return (
-      <div className="flex min-h-[42vh] flex-col items-center justify-center text-center">
+      <div className="flex min-h-[50vh] flex-col items-center justify-center text-center">
         <p className="text-2xl font-medium">No cases here</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Add a PS5 copy, or switch the filter.
-        </p>
+        <p className="mt-2 text-sm text-white/70">Add a copy, or switch the filter.</p>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-stage">
+    <div className="aurora-stage">
       {backdrop && (
         <div
-          className="dashboard-hero"
+          className="aurora-hero"
           style={{ backgroundImage: `url(${backdrop})` }}
         />
       )}
-      <div className="relative z-10">
-        <div className="mb-2 flex flex-wrap items-center justify-center gap-2">
+
+      <div className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col">
+        <div className="flex justify-center gap-2 px-4 pt-3">
           {FILTERS.map((item) => (
             <button
               key={item.id}
@@ -87,10 +90,10 @@ export function CaseRail({
                 setFocus(0);
                 setOpened(false);
               }}
-              className={`rounded-full px-3 py-1 text-xs tracking-wide ${
+              className={`rounded-full px-3 py-1 text-xs ${
                 filter === item.id
                   ? "bg-white text-black"
-                  : "bg-black/35 text-white/80 hover:bg-black/50"
+                  : "bg-black/40 text-white/85"
               }`}
             >
               {item.label}
@@ -98,17 +101,35 @@ export function CaseRail({
           ))}
         </div>
 
-        <div className="coverflow">
+        <div
+          className="coverflow flex-1"
+          onTouchStart={(event) => {
+            touchX.current = event.touches[0]?.clientX ?? null;
+          }}
+          onTouchEnd={(event) => {
+            if (touchX.current == null) return;
+            const dx = event.changedTouches[0].clientX - touchX.current;
+            if (dx < -40) move(1);
+            if (dx > 40) move(-1);
+            touchX.current = null;
+          }}
+        >
           {games.map((game, index) => {
             const offset = index - safeFocus;
+            const abs = Math.abs(offset);
             return (
               <div
                 key={game.id}
                 className="coverflow-item"
                 style={{
-                  zIndex: 40 - Math.abs(offset),
-                  transform: `translateX(${offset * 148}px) rotateY(${offset * -32}deg) scale(${offset === 0 ? 1.18 : 0.88})`,
-                  opacity: Math.abs(offset) > 4 ? 0 : 1,
+                  zIndex: 80 - abs,
+                  transform: `
+                    translateX(${offset * 108}px)
+                    translateZ(${offset === 0 ? 90 : -abs * 70}px)
+                    rotateY(${offset * -48}deg)
+                    scale(${offset === 0 ? 1.22 : Math.max(0.78, 0.96 - abs * 0.04)})
+                  `,
+                  opacity: abs > 5 ? 0 : 1,
                 }}
               >
                 <div className="coverflow-stack">
@@ -134,50 +155,30 @@ export function CaseRail({
         </div>
 
         {selected && (
-          <div className="mt-1 text-center">
-            <p className="text-[11px] uppercase tracking-[0.28em] text-sky-200">
-              {STATUS_LABELS[selected.status]}
-            </p>
-            <h2 className="mt-1 text-4xl font-semibold tracking-tight drop-shadow sm:text-5xl">
-              {selected.title}
-            </h2>
-            <p className="mt-2 text-sm text-white/75">
+          <div className="aurora-titlebar">
+            <p className="text-xl font-semibold sm:text-2xl">{selected.title}</p>
+            <p className="text-sm text-white/70">
               {safeFocus + 1} of {games.length}
               {selected.status === "for_sale" && selected.askingPrice != null
                 ? ` · ${money(selected.askingPrice, library.profile.currency)}`
-                : ""}
+                : ` · ${STATUS_LABELS[selected.status]}`}
             </p>
-            <div className="mt-4 flex justify-center gap-2">
-              <Button variant="outline" onClick={() => setFocus((v) => Math.max(0, v - 1))}>
-                Prev
-              </Button>
-              <Button onClick={() => setOpened(true)}>Open case</Button>
-              <Button
-                variant="outline"
-                onClick={() => setFocus((v) => Math.min(games.length - 1, v + 1))}
-              >
-                Next
-              </Button>
-            </div>
           </div>
         )}
 
-        <div className="mt-8 flex justify-center gap-2 overflow-x-auto pb-2">
-          {games.map((game, index) => (
-            <button
-              key={`thumb-${game.id}`}
-              type="button"
-              onClick={() => {
-                setFocus(index);
-                setOpened(false);
-              }}
-              className={`overflow-hidden rounded-sm ${
-                index === safeFocus ? "ring-2 ring-white" : "opacity-60 hover:opacity-100"
-              }`}
-            >
-              <GameCase game={game} size="sm" />
-            </button>
-          ))}
+        <div className="aurora-actions">
+          <button type="button" onClick={() => setOpened(true)}>
+            <span className="aurora-key aurora-key-a">A</span> Open
+          </button>
+          <button type="button" onClick={() => move(-1)}>
+            <span className="aurora-key aurora-key-b">B</span> Prev
+          </button>
+          <button type="button" onClick={() => move(1)}>
+            <span className="aurora-key aurora-key-x">X</span> Next
+          </button>
+          <button type="button" onClick={() => setOpened(true)}>
+            <span className="aurora-key aurora-key-y">Y</span> Details
+          </button>
         </div>
       </div>
 
@@ -185,7 +186,7 @@ export function CaseRail({
         <div className="case-overlay" role="dialog" aria-label={`Opened ${selected.title}`}>
           {selected.coverImage && (
             <div
-              className="dashboard-hero"
+              className="aurora-hero"
               style={{ backgroundImage: `url(${artSrc(selected.coverImage)})` }}
             />
           )}
@@ -203,11 +204,7 @@ export function CaseRail({
                   <GameCase game={selected} size="lg" />
                 </div>
               </div>
-              <p className="mt-6 max-w-md text-sm text-white/70">
-                The front cover lifts so you can see the disc. If the box art is
-                wrong, pick another from the panel — or upload your own photo.
-              </p>
-              <Button className="mt-4" variant="outline" onClick={() => setOpened(false)}>
+              <Button className="mt-6" variant="outline" onClick={() => setOpened(false)}>
                 Back to the shelf
               </Button>
             </div>

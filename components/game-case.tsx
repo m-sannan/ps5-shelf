@@ -15,20 +15,14 @@ function CoverArt({ game }: { game: Game }) {
       />
     );
   }
-
   return (
     <div
-      className="flex h-full w-full flex-col justify-between p-3 text-white"
+      className="flex h-full w-full items-end p-3 text-white"
       style={{
         background: `linear-gradient(165deg, ${game.coverColor} 0%, #071018 78%)`,
       }}
     >
-      <span className="text-[10px] font-semibold tracking-[0.28em] text-white/70">
-        PS5
-      </span>
-      <p className="text-left text-lg font-semibold leading-tight drop-shadow">
-        {game.title}
-      </p>
+      <p className="text-left text-base font-semibold leading-tight">{game.title}</p>
     </div>
   );
 }
@@ -46,22 +40,23 @@ export function GameCase({
   dimmed?: boolean;
   onClick?: () => void;
 }) {
-  const width = size === "lg" ? 236 : size === "sm" ? 72 : 188;
-  const height = Math.round(width * 1.48);
+  const width = size === "lg" ? 250 : size === "sm" ? 64 : 198;
+  const height = Math.round(width * 1.42);
   const className = cn(
     "game-case relative shrink-0 text-left",
     selected && "game-case-selected",
-    dimmed && "opacity-55",
+    dimmed && "opacity-80",
   );
-  const style = { width, height };
   const inner = (
     <>
       <span className="game-case-spine" />
       <span className="game-case-face">
-        <CoverArt game={game} />
-        <span className="pointer-events-none absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-white/25 to-transparent" />
-        <span className="pointer-events-none absolute bottom-2 left-2 rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-white/90">
-          PS5
+        <span className="game-case-banner">
+          <span>PS5</span>
+          <span className="tracking-[0.2em]">PLAYSTATION</span>
+        </span>
+        <span className="game-case-art">
+          <CoverArt game={game} />
         </span>
       </span>
     </>
@@ -69,7 +64,7 @@ export function GameCase({
 
   if (!onClick) {
     return (
-      <div className={className} style={style} aria-hidden>
+      <div className={className} style={{ width, height }} aria-hidden>
         {inner}
       </div>
     );
@@ -81,7 +76,7 @@ export function GameCase({
       onClick={onClick}
       aria-label={game.title}
       className={className}
-      style={style}
+      style={{ width, height }}
     >
       {inner}
     </button>
