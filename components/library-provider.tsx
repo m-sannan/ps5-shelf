@@ -4,20 +4,37 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useSyncExternalStore,
 } from "react";
+import {
+  createCloudShelf,
+  generateDeviceSecret,
+  joinDevicePair,
+  pullCloudShelf,
+  pushCloudShelf,
+  startDevicePair,
+} from "@/lib/cloud/client";
+import type { CloudSession } from "@/lib/cloud/types";
 import { uid } from "@/lib/format";
 import {
+  asAccount,
   createAccount,
-  currentAccount,
   getServerStoreSnapshot,
   getStoreSnapshot,
+  hasSavedShelf,
+  lockShelf,
+  openShelf,
+  readLegacyAccounts,
   resetLibrary,
-  signIn,
-  signOut,
+  setCloudSession,
+  setShelfPin,
   subscribeStore,
+  unlockShelf,
   writeLibrary,
+  writeState,
 } from "@/lib/storage";
 import type { Account, Game, Library, Loan, Profile } from "@/lib/types";
 
@@ -38,6 +55,9 @@ type LibraryContextValue = {
   accounts: Account[];
   ready: boolean;
   signedIn: boolean;
+  cloud: CloudSession | null;
+  syncing: boolean;
+  syncError: string;
   updateProfile: (profile: Profile) => void;
   addGame: (
     game: Omit<Game, "id" | "loans" | "platform"> & { loans?: Loan[] },
@@ -55,6 +75,16 @@ type LibraryContextValue = {
     pin: string | null;
     useSample: boolean;
   }) => void;
+  createShelf: (input: {
+    name: string;
+    pin?: string | null;
+    library?: Library;
+  }) => Promise<void>;
+  joinShelf: (code: string) => Promise<void>;
+  importLegacy: (account: Account) => Promise<void>;
+  restoreLibrary: (library: Library, mode: "replace" | "copy") => Promise<void>;
+  requestPairCode: () => Promise<{ code: string; expiresIn: number }>;
+  setPin: (pin: string | null) => void;
 };
 
 const LibraryContext = createContext<LibraryContextValue | null>(null);
@@ -65,21 +95,84 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     getStoreSnapshot,
     getServerStoreSnapshot,
   );
-  const account = currentAccount(store);
+  const account = asAccount(store);
   const library = account?.library ?? EMPTY;
+  const syncingRef = useRef(false);
+  const pushTimer = useRef<number | null>(null);
+  const syncingState = useSyncExternalStore(
+    (listener) => {
+      const on = () => listener();
+      window.addEventListener("crate-sync", on);
+      return () => window.removeEventListener("crate-sync", on);
+    },
+    () => syncingRef.current,
+    () => false,
+  );
+  const errorRef = useRef("");
+  const errorState = useSyncExternalStore(
+    (listener) => {
+      const on = () => listener();
+      window.addEventListener("crate-sync-error", on);
+      return () => window.removeEventListener("crate-sync-error", on);
+    },
+    () => errorRef.current,
+    () => "",
+  );
+
+  const setSyncing = useCallback((value: boolean) => {
+    syncingRef.current = value;
+    window.dispatchEvent(new Event("crate-sync"));
+  }, []);
+
+  const setError = useCallback((value: string) => {
+    errorRef.current = value;
+    window.dispatchEvent(new Event("crate-sync-error"));
+  }, []);
 
   const persist = useCallback((next: Library) => {
     writeLibrary(next);
   }, []);
 
+  const pushNow = useCallback(async (nextLibrary: Library, session: CloudSession) => {
+    const payload = await pushCloudShelf({
+      deviceSecret: session.deviceSecret,
+      library: nextLibrary,
+    });
+    setCloudSession({
+      ...session,
+      revision: payload.revision,
+      publicId: payload.publicId,
+      shelfId: payload.shelfId,
+    });
+  }, []);
+
+  const schedulePush = useCallback(
+    (next: Library) => {
+      persist(next);
+      const session = getStoreSnapshot().cloud;
+      if (!session) return;
+      if (pushTimer.current) window.clearTimeout(pushTimer.current);
+      pushTimer.current = window.setTimeout(() => {
+        setSyncing(true);
+        pushNow(next, session)
+          .then(() => setError(""))
+          .catch((error: unknown) => {
+            setError(error instanceof Error ? error.message : "Could not sync.");
+          })
+          .finally(() => setSyncing(false));
+      }, 700);
+    },
+    [persist, pushNow, setError, setSyncing],
+  );
+
   const updateProfile = useCallback(
-    (profile: Profile) => persist({ ...library, profile }),
-    [library, persist],
+    (profile: Profile) => schedulePush({ ...library, profile }),
+    [library, schedulePush],
   );
 
   const addGame = useCallback(
     (game: Omit<Game, "id" | "loans" | "platform"> & { loans?: Loan[] }) => {
-      persist({
+      schedulePush({
         ...library,
         games: [
           {
@@ -92,48 +185,48 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         ],
       });
     },
-    [library, persist],
+    [library, schedulePush],
   );
 
   const updateGame = useCallback(
     (id: string, patch: Partial<Game>) => {
-      persist({
+      schedulePush({
         ...library,
         games: library.games.map((game) =>
           game.id === id ? { ...game, ...patch } : game,
         ),
       });
     },
-    [library, persist],
+    [library, schedulePush],
   );
 
   const deleteGame = useCallback(
     (id: string) => {
-      persist({
+      schedulePush({
         ...library,
         games: library.games.filter((game) => game.id !== id),
       });
     },
-    [library, persist],
+    [library, schedulePush],
   );
 
   const addLoan = useCallback(
     (gameId: string, loan: Omit<Loan, "id">) => {
-      persist({
+      schedulePush({
         ...library,
         games: library.games.map((game) =>
-          game.id === gameId
+          gameId === game.id
             ? { ...game, loans: [{ ...loan, id: uid("loan") }, ...game.loans] }
             : game,
         ),
       });
     },
-    [library, persist],
+    [library, schedulePush],
   );
 
   const updateLoan = useCallback(
     (gameId: string, loanId: string, patch: Partial<Loan>) => {
-      persist({
+      schedulePush({
         ...library,
         games: library.games.map((game) =>
           game.id === gameId
@@ -147,12 +240,12 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         ),
       });
     },
-    [library, persist],
+    [library, schedulePush],
   );
 
   const removeLoan = useCallback(
     (gameId: string, loanId: string) => {
-      persist({
+      schedulePush({
         ...library,
         games: library.games.map((game) =>
           game.id === gameId
@@ -161,16 +254,157 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         ),
       });
     },
-    [library, persist],
+    [library, schedulePush],
   );
+
+  const refreshFromCloud = useCallback(async () => {
+    const session = getStoreSnapshot().cloud;
+    if (!session) return;
+    setSyncing(true);
+    try {
+      const payload = await pullCloudShelf(session.deviceSecret);
+      const current = getStoreSnapshot();
+      writeState({
+        ...current,
+        unlocked: true,
+        library: payload.library,
+        name: payload.library.profile.name || current.name,
+        cloud: {
+          ...session,
+          shelfId: payload.shelfId,
+          publicId: payload.publicId,
+          revision: payload.revision,
+        },
+      });
+      setError("");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Could not refresh the shelf.");
+    } finally {
+      setSyncing(false);
+    }
+  }, [setError, setSyncing]);
+
+  useEffect(() => {
+    if (!store.unlocked || !store.cloud) return;
+    void refreshFromCloud();
+    function onWake() {
+      if (document.visibilityState === "visible") void refreshFromCloud();
+    }
+    window.addEventListener("focus", onWake);
+    window.addEventListener("online", onWake);
+    document.addEventListener("visibilitychange", onWake);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refreshFromCloud();
+    }, 30_000);
+    return () => {
+      window.removeEventListener("focus", onWake);
+      window.removeEventListener("online", onWake);
+      document.removeEventListener("visibilitychange", onWake);
+      window.clearInterval(timer);
+    };
+  }, [refreshFromCloud, store.cloud?.deviceSecret, store.unlocked]);
+
+  const createShelf = useCallback(
+    async (input: { name: string; pin?: string | null; library?: Library }) => {
+      const name = input.name.trim() || "My shelf";
+      const librarySeed = input.library
+        ? {
+            ...input.library,
+            profile: { ...input.library.profile, name: input.library.profile.name || name },
+          }
+        : {
+            profile: {
+              name,
+              contact: "",
+              city: "",
+              note: "Physical PS5 copies.",
+              currency: "INR" as const,
+            },
+            games: [],
+          };
+      const deviceSecret = generateDeviceSecret();
+      try {
+        const { session, library: remote } = await createCloudShelf({
+          deviceSecret,
+          library: librarySeed,
+        });
+        openShelf({ name, library: remote, cloud: session, pin: input.pin ?? null });
+        setError("");
+      } catch (error) {
+        openShelf({
+          name,
+          library: librarySeed,
+          cloud: null,
+          pin: input.pin ?? null,
+        });
+        setError(
+          error instanceof Error
+            ? `${error.message} This device still has a local copy — download a JSON backup.`
+            : "Cloud is unavailable. This device still has a local copy.",
+        );
+      }
+    },
+    [setError],
+  );
+
+  const joinShelf = useCallback(
+    async (code: string) => {
+      const deviceSecret = generateDeviceSecret();
+      const { session, library: remote } = await joinDevicePair({
+        code: code.replace(/\s/g, ""),
+        deviceSecret,
+      });
+      openShelf({
+        name: remote.profile.name || "Shelf",
+        library: remote,
+        cloud: session,
+      });
+      setError("");
+    },
+    [setError],
+  );
+
+  const importLegacy = useCallback(
+    async (legacy: Account) => {
+      await createShelf({
+        name: legacy.name,
+        pin: legacy.pin,
+        library: legacy.library,
+      });
+    },
+    [createShelf],
+  );
+
+  const restoreLibrary = useCallback(
+    async (next: Library, mode: "replace" | "copy") => {
+      if (mode === "copy" || !store.cloud) {
+        await createShelf({
+          name: next.profile.name || "Restored shelf",
+          library: next,
+        });
+        return;
+      }
+      schedulePush(next);
+    },
+    [createShelf, schedulePush, store.cloud],
+  );
+
+  const requestPairCode = useCallback(async () => {
+    const session = getStoreSnapshot().cloud;
+    if (!session) throw new Error("Cloud pairing needs an online shelf.");
+    return await startDevicePair(session.deviceSecret);
+  }, []);
 
   const value = useMemo(
     () => ({
       library,
       account,
-      accounts: store.accounts,
+      accounts: account ? [account] : [],
       ready: true,
       signedIn: Boolean(account),
+      cloud: store.cloud,
+      syncing: syncingState,
+      syncError: errorState,
       updateProfile,
       addGame,
       updateGame,
@@ -178,15 +412,27 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       addLoan,
       updateLoan,
       removeLoan,
-      restoreDemo: resetLibrary,
-      signIn,
-      signOut,
+      restoreDemo: () => {
+        const next = resetLibrary();
+        const session = getStoreSnapshot().cloud;
+        if (session) void pushNow(next, session);
+      },
+      signIn: () => unlockShelf(),
+      signOut: lockShelf,
       createAccount,
+      createShelf,
+      joinShelf,
+      importLegacy,
+      restoreLibrary,
+      requestPairCode,
+      setPin: setShelfPin,
     }),
     [
       library,
       account,
-      store.accounts,
+      store.cloud,
+      syncingState,
+      errorState,
       updateProfile,
       addGame,
       updateGame,
@@ -194,6 +440,12 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       addLoan,
       updateLoan,
       removeLoan,
+      pushNow,
+      createShelf,
+      joinShelf,
+      importLegacy,
+      restoreLibrary,
+      requestPairCode,
     ],
   );
 
@@ -207,3 +459,10 @@ export function useLibrary() {
   if (!ctx) throw new Error("useLibrary must be used inside LibraryProvider");
   return ctx;
 }
+
+export function useLegacyAccounts() {
+  if (typeof window === "undefined") return [];
+  return readLegacyAccounts();
+}
+
+export { hasSavedShelf };
