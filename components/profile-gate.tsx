@@ -23,11 +23,10 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
   const [legacy, setLegacy] = useState<LegacyAccount[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
-  const [pin, setPin] = useState("");
-  const [enteredPin, setEnteredPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [restoreMode, setRestoreMode] = useState<"copy" | "replace">("copy");
+  const [more, setMore] = useState(false);
 
   useEffect(() => {
     setSaved(hasSavedShelf());
@@ -50,11 +49,6 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
   }
 
   function continueSaved() {
-    const state = getStoreSnapshot();
-    if (state.pin && enteredPin !== state.pin) {
-      setError("That PIN does not match.");
-      return;
-    }
     unlockShelf();
     signIn("local");
   }
@@ -66,7 +60,7 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
       return;
     }
     await run("Could not create the shelf.", () =>
-      createShelf({ name: name.trim(), pin: pin.trim() || null }),
+      createShelf({ name: name.trim(), pin: null }),
     );
   }
 
@@ -98,9 +92,8 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
           Your cloud shelf
         </h1>
         <p className="mt-3 max-w-lg text-center text-sm text-white/65">
-          No account, email, or password. This device keeps a private key.
-          Paired devices stay in sync. A JSON backup is how you recover if
-          every device is gone.
+          A private library of your PS5 copies. No account. This browser keeps
+          the shelf; you can pair another device or restore from a JSON backup.
         </p>
 
         {saved && snapshot && (
@@ -110,18 +103,6 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
               {snapshot.name || snapshot.library.profile.name || "Saved shelf"}
               {snapshot.cloud ? " · synced" : " · local copy"}
             </p>
-            {snapshot.pin && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="unlock-pin">PIN</Label>
-                <Input
-                  id="unlock-pin"
-                  type="password"
-                  inputMode="numeric"
-                  value={enteredPin}
-                  onChange={(event) => setEnteredPin(event.target.value)}
-                />
-              </div>
-            )}
             <Button className="w-full" onClick={continueSaved} disabled={busy}>
               Open shelf
             </Button>
@@ -140,17 +121,6 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Sannan"
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="new-pin">Device PIN (optional)</Label>
-            <Input
-              id="new-pin"
-              type="password"
-              inputMode="numeric"
-              value={pin}
-              onChange={(event) => setPin(event.target.value)}
-              placeholder="Locks this browser only"
             />
           </div>
           <Button type="submit" className="w-full" disabled={busy}>
@@ -182,14 +152,24 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
+        <button
+          type="button"
+          className="mt-8 text-sm text-white/50 hover:text-white"
+          onClick={() => setMore((value) => !value)}
+        >
+          {more ? "Hide other options" : "I already have a shelf"}
+        </button>
+
+        {more && (
+          <>
         <form
           onSubmit={onJoin}
-          className="mt-8 w-full max-w-md space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5"
+          className="mt-4 w-full max-w-md space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5"
         >
-          <p className="text-sm font-medium">Open existing shelf</p>
+          <p className="text-sm font-medium">Open on this device</p>
           <p className="text-sm text-white/55">
-            On a paired device: Settings → Link a device. Enter that six-digit
-            code here. It expires in five minutes.
+            On a phone or laptop that already has the shelf: Settings → Link a
+            device. Enter the six-digit code here. It lasts five minutes.
           </p>
           <div className="grid gap-1.5">
             <Label htmlFor="pair-code">Six-digit code</Label>
@@ -208,11 +188,10 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
           </Button>
         </form>
 
-        <div className="mt-8 w-full max-w-md space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5">
+        <div className="mt-4 w-full max-w-md space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5">
           <p className="text-sm font-medium">Restore from backup</p>
           <p className="text-sm text-white/55">
-            Use a downloaded <span className="text-white/80">crate-shelf-backup-*.json</span>{" "}
-            file. A separate copy is safer if this device already has a shelf.
+            Use a downloaded crate-shelf-backup file if every paired device is gone.
           </p>
           <label className="flex items-center gap-2 text-sm text-white/70">
             <input
@@ -243,6 +222,8 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
             }}
           />
         </div>
+          </>
+        )}
 
         {account && (
           <p className="mt-6 text-sm text-white/40">{account.name}</p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { FieldSelect } from "@/components/field-select";
 import { useLibrary } from "@/components/library-provider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -172,24 +173,21 @@ export function Ledger() {
               }
             />
           </Field>
-          <Field label="Currency">
-            <select
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm"
-              value={library.profile.currency}
-              onChange={(event) =>
-                updateProfile({
-                  ...library.profile,
-                  currency: event.target.value as CurrencyCode,
-                })
-              }
-            >
-              {CURRENCIES.map((item) => (
-                <option key={item.code} value={item.code}>
-                  {item.code} — {item.label}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <FieldSelect
+            id="currency"
+            label="Currency"
+            value={library.profile.currency}
+            onChange={(value) =>
+              updateProfile({
+                ...library.profile,
+                currency: value as CurrencyCode,
+              })
+            }
+            options={CURRENCIES.map((item) => ({
+              value: item.code,
+              label: `${item.code} — ${item.label}`,
+            }))}
+          />
           <Field label="Contact">
             <Input
               value={library.profile.contact}

@@ -1,5 +1,6 @@
-import type { Condition, CurrencyCode, Game, Library, Loan, PlayStatus, Profile } from "./types";
-import { CONDITIONS, CURRENCIES, PLAY_STATUSES } from "./types";
+import type { Condition, CopyKind, CurrencyCode, Game, Library, Loan, PlayStatus, Profile } from "./types";
+import { CONDITIONS, COPY_KINDS, CURRENCIES, PLAY_STATUSES } from "./types";
+import { conditionFields, conditionPhotos, snapRating } from "./photos";
 
 export const BACKUP_FORMAT = "crate-shelf-backup";
 export const BACKUP_VERSION = 1;
@@ -76,6 +77,21 @@ function parseGame(raw: unknown, index: number): Game {
     throw new Error(`Game ${index + 1} has an unknown condition.`);
   }
   const loans = Array.isArray(row.loans) ? row.loans.map(parseLoan) : [];
+  const coverImage = typeof row.coverImage === "string" ? row.coverImage : null;
+  const discPhoto = typeof row.discPhoto === "string" ? row.discPhoto : null;
+  const casePhoto = typeof row.casePhoto === "string" ? row.casePhoto : null;
+  const listedRaw = Array.isArray(row.photos)
+    ? row.photos.filter((item): item is string => typeof item === "string")
+    : [];
+  const extras = listedRaw.filter((src) => src !== coverImage && src !== discPhoto);
+  const photos = conditionFields(
+    extras.length ? extras : casePhoto && casePhoto !== discPhoto ? [casePhoto] : [],
+  );
+  const copyKind: CopyKind =
+    row.copyKind === "digital" || row.format === "digital" ? "digital" : "disc";
+  if (COPY_KINDS.indexOf(copyKind) < 0) {
+    /* keep disc */
+  }
   return {
     id: asString(row.id, `game-${index + 1}`),
     title: asString(row.title, "Untitled"),
@@ -88,8 +104,15 @@ function parseGame(raw: unknown, index: number): Game {
     condition: condition as Condition,
     notes: asString(row.notes),
     coverColor: asString(row.coverColor, "#2563eb"),
-    coverImage: typeof row.coverImage === "string" ? row.coverImage : null,
-    discPhoto: typeof row.discPhoto === "string" ? row.discPhoto : null,
+    coverImage,
+    discPhoto,
+    casePhoto,
+    copyKind,
+    rating:
+      typeof row.rating === "number" && Number.isFinite(row.rating)
+        ? snapRating(row.rating) || null
+        : null,
+    ...photos,
     loans,
   };
 }
@@ -109,6 +132,7 @@ function parseProfile(raw: unknown): Profile {
     city: asString(row.city),
     note: asString(row.note),
     currency,
+    sharePaidPrice: row.sharePaidPrice === true,
   };
 }
 
@@ -212,6 +236,12 @@ export async function buildCompleteBackup(library: Library): Promise<ShelfBackup
       ...structuredClone(game),
       coverImage: await embedImage(game.coverImage),
       discPhoto: await embedImage(game.discPhoto),
+      casePhoto: null,
+      ...conditionFields(
+        (await Promise.all(conditionPhotos(game).map((src) => embedImage(src)))).filter(
+          (src): src is string => Boolean(src),
+        ),
+      ),
     });
   }
   return {

@@ -169,7 +169,9 @@ export function publicShelf(blob: CloudBlob, publicId: string) {
     .filter((game) => game.status !== "sold")
     .map((game) => ({
       ...game,
+      status: game.status === "lent_out" ? "on_shelf" : game.status,
       purchasePrice: 0,
+      purchaseDate: "",
       soldPrice: null,
       loans: [],
       notes: "",
@@ -183,6 +185,7 @@ export function publicShelf(blob: CloudBlob, publicId: string) {
       city: shelf.library.profile.city,
       note: shelf.library.profile.note,
       currency: shelf.library.profile.currency,
+      sharePaidPrice: false,
     },
     games,
   };

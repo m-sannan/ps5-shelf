@@ -23,8 +23,6 @@ export function SettingsPage() {
     syncError,
     requestPairCode,
     restoreLibrary,
-    setPin,
-    account,
   } = useLibrary();
   const [pairCode, setPairCode] = useState<string | null>(null);
   const [expiresIn, setExpiresIn] = useState(0);
@@ -32,7 +30,6 @@ export function SettingsPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [restoreMode, setRestoreMode] = useState<"copy" | "replace">("copy");
-  const [pin, setPinValue] = useState(account?.pin ?? "");
 
   useEffect(() => {
     if (!pairCode || expiresIn <= 0) return;
@@ -190,8 +187,9 @@ export function SettingsPage() {
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5">
         <p className="text-sm font-medium">Public share link</p>
         <p className="text-sm text-white/55">
-          Read-only. Sold copies, purchase prices, and loans stay private. The
-          device key is never in this URL.
+          Read-only. Friends see games for sale with asking price and condition,
+          then the rest of the library. What you paid stays private. Sold copies
+          stay hidden. The device key is never in this URL.
         </p>
         {cloud?.publicId && (
           <Input
@@ -207,33 +205,6 @@ export function SettingsPage() {
         )}
         <Button variant="secondary" onClick={copyShare}>
           Copy public link
-        </Button>
-      </section>
-
-      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5">
-        <p className="text-sm font-medium">PIN for this browser</p>
-        <p className="text-sm text-white/55">
-          Optional. It never leaves this device and cannot recover a lost shelf.
-        </p>
-        <div className="grid gap-1.5">
-          <Label htmlFor="device-pin">PIN</Label>
-          <Input
-            id="device-pin"
-            type="password"
-            inputMode="numeric"
-            value={pin}
-            onChange={(event) => setPinValue(event.target.value)}
-            placeholder="Leave blank for none"
-          />
-        </div>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setPin(pin.trim() || null);
-            setMessage(pin.trim() ? "PIN saved on this device." : "PIN removed.");
-          }}
-        >
-          Save PIN
         </Button>
       </section>
 
