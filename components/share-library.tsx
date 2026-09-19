@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { publicShelfPath } from "@/lib/cloud/client";
 import { copyText, selectField } from "@/lib/copy-text";
 import { money } from "@/lib/format";
-import { isForSale } from "@/lib/photos";
+import { conditionPhotos, isForSale } from "@/lib/photos";
 import { toPublicLibrary } from "@/lib/public-view";
 import { CURRENCIES, type CurrencyCode } from "@/lib/types";
 
@@ -39,6 +39,10 @@ export function ShareLibrary() {
   const sold = useMemo(
     () => (mode === "me" ? library.games.filter((game) => game.status === "sold") : []),
     [library.games, mode],
+  );
+  const listedWithoutPhotos = useMemo(
+    () => forSale.filter((game) => conditionPhotos(game).length === 0).length,
+    [forSale],
   );
   const currency = shown.profile.currency;
   const asking = forSale.reduce((sum, game) => sum + (game.askingPrice ?? 0), 0);
@@ -122,7 +126,7 @@ export function ShareLibrary() {
         <section className="rounded-2xl bg-white/4 p-5 ring-1 ring-white/8">
           <p className="font-medium">Seller card</p>
           <p className="mt-1 text-sm text-white/50">
-            This is the header friends see on your public link.
+            This is the header friends see on your public link. City and contact are how they reach you about a listed copy.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Field label="Name">
@@ -212,6 +216,14 @@ export function ShareLibrary() {
           </>
         )}
       </div>
+
+      {listedWithoutPhotos > 0 && (
+        <p className="rounded-xl bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
+          {listedWithoutPhotos === 1
+            ? "One listed copy has no photos of the disc. Friends only see box art until you add shots of this copy."
+            : `${listedWithoutPhotos} listed copies have no photos of the disc. Friends only see box art until you add shots of those copies.`}
+        </p>
+      )}
 
       <section className="min-w-0">
         <h2 className="text-lg font-medium">For sale</h2>

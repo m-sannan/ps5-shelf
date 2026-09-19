@@ -24,6 +24,22 @@ export function discArt(game: Pick<Game, "coverImage" | "discPhoto">) {
   return game.discPhoto || game.coverImage;
 }
 
+export function listingShots(
+  game: Pick<Game, "photos" | "casePhoto" | "discPhoto" | "coverImage">,
+): { src: string; caption: string }[] {
+  const shots: { src: string; caption: string }[] = [];
+  conditionPhotos(game).forEach((src, index) => {
+    shots.push({ src, caption: `This copy · ${index + 1}` });
+  });
+  if (game.discPhoto && !shots.some((shot) => shot.src === game.discPhoto)) {
+    shots.push({ src: game.discPhoto, caption: "Disc" });
+  }
+  if (game.coverImage && !shots.some((shot) => shot.src === game.coverImage)) {
+    shots.push({ src: game.coverImage, caption: "Box art" });
+  }
+  return shots;
+}
+
 export function isForSale(game: Pick<Game, "status" | "askingPrice" | "copyKind">) {
   if (game.copyKind === "digital") return false;
   if (game.status === "sold") return false;

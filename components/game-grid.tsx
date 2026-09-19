@@ -4,13 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { CoverMarks, DiscFace, DiscPicker } from "@/components/game-case";
 import { GamePanel } from "@/components/game-panel";
+import { PhotoLightbox } from "@/components/photo-gallery";
 import { RatingStars } from "@/components/rating-stars";
 import { useLibrary } from "@/components/library-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { artSrc } from "@/lib/art-src";
 import { money } from "@/lib/format";
-import { coverOf, isCompleted, isForSale, isPlaying, playLabel } from "@/lib/photos";
+import {
+  conditionPhotos,
+  coverOf,
+  isCompleted,
+  isForSale,
+  isPlaying,
+  listingShots,
+  playLabel,
+} from "@/lib/photos";
 import {
   CONDITION_LABELS,
   type CurrencyCode,
@@ -38,6 +47,7 @@ export function GameGrid({
   const [query, setQuery] = useState("");
   const [openedId, setOpenedId] = useState<string | null>(null);
   const [shelfView, setShelfView] = useState<"art" | "disc">("art");
+  const [shotIndex, setShotIndex] = useState<number | null>(null);
   const moneyCurrency = currency ?? library.profile.currency;
   const shelfToggle = !publicView && !readOnly;
 
@@ -81,16 +91,25 @@ export function GameGrid({
   }, [source, filter, query]);
 
   const opened = source.find((game) => game.id === openedId) ?? null;
+  const openedShots = opened ? listingShots(opened) : [];
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       if (document.querySelector("[role='listbox']")) return;
+      if (document.querySelector("[data-photo-lightbox]")) return;
       setOpenedId(null);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  function openShot(src: string | null | undefined) {
+    if (!src || !opened) return;
+    const shots = listingShots(opened);
+    const index = shots.findIndex((shot) => shot.src === src);
+    setShotIndex(index >= 0 ? index : 0);
+  }
 
   return (
     <div className="min-w-0">
@@ -179,6 +198,7 @@ export function GameGrid({
           {games.map((game) => {
             const cover = coverOf(game);
             const listed = isForSale(game);
+            const copyCount = conditionPhotos(game).length;
             return (
               <button
                 key={game.id}
@@ -227,7 +247,9 @@ export function GameGrid({
                 ) : null}
                 <span className="mt-0.5 block truncate text-xs text-white/40">
                   {listed && game.askingPrice != null
-                    ? `${money(game.askingPrice, moneyCurrency)} · ${CONDITION_LABELS[game.condition]}`
+                    ? `${money(game.askingPrice, moneyCurrency)} · ${CONDITION_LABELS[game.condition]}${
+                        copyCount ? ` · ${copyCount} photo${copyCount === 1 ? "" : "s"}` : ""
+                      }`
                     : game.status === "sold"
                       ? "Sold"
                       : game.copyKind === "digital"
@@ -260,7 +282,12 @@ export function GameGrid({
           </div>
           <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-5 pb-10 sm:px-6">
             <div className="mx-auto flex max-w-lg items-end gap-4">
-              <div className="relative w-28 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 sm:w-36">
+              <button
+                type="button"
+                className="relative w-28 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10 sm:w-36"
+                onClick={() => openShot(opened.coverImage)}
+                aria-label={`Expand ${opened.title} box art`}
+              >
                 <div className="relative aspect-[3/4]">
                   {opened.coverImage ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -281,12 +308,17 @@ export function GameGrid({
                   )}
                   <CoverMarks game={opened} />
                 </div>
-              </div>
+              </button>
               {opened.copyKind !== "digital" && (
                 <DiscPicker
                   game={opened}
                   size={108}
                   readOnly={readOnly}
+                  onOpen={
+                    opened.discPhoto || opened.coverImage
+                      ? () => openShot(opened.discPhoto || opened.coverImage)
+                      : undefined
+                  }
                   onPick={
                     readOnly
                       ? undefined
@@ -308,6 +340,17 @@ export function GameGrid({
           </div>
         </div>,
         document.body,
+      )}
+
+      {shotIndex != null && openedShots.length > 0 && (
+        <PhotoLightbox
+          key={shotIndex}
+          photos={openedShots.map((shot) => shot.src)}
+          captions={openedShots.map((shot) => shot.caption)}
+          index={shotIndex}
+          title={opened?.title ?? "Photo"}
+          onClose={() => setShotIndex(null)}
+        />
       )}
     </div>
   );

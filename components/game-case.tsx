@@ -158,24 +158,30 @@ export function DiscPicker({
   game,
   size = 108,
   onPick,
+  onOpen,
   readOnly = false,
 }: {
   game: Game;
   size?: number;
   onPick?: (url: string) => void;
+  onOpen?: () => void;
   readOnly?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const canEdit = Boolean(onPick) && !readOnly;
+  const canOpen = Boolean(onOpen) && !canEdit;
 
   return (
     <div className="space-y-2">
       <button
         type="button"
-        disabled={!canEdit}
-        onClick={() => inputRef.current?.click()}
+        disabled={!canEdit && !canOpen}
+        onClick={() => {
+          if (canEdit) inputRef.current?.click();
+          else onOpen?.();
+        }}
         className="block rounded-full disabled:cursor-default"
-        aria-label={canEdit ? "Upload a disc photo" : `${game.title} disc`}
+        aria-label={canEdit ? "Upload a disc photo" : canOpen ? `Expand ${game.title} disc` : `${game.title} disc`}
       >
         <DiscFace game={game} size={size} />
       </button>
@@ -194,8 +200,9 @@ export function DiscPicker({
             }}
           />
         </>
+      ) : canOpen ? (
+        <p className="text-xs text-white/40">Tap the disc to zoom</p>
       ) : null}
     </div>
   );
 }
-

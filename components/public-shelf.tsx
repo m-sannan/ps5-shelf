@@ -119,12 +119,14 @@ export function PublicShelf({ publicId }: { publicId: string }) {
           )}
         </div>
         <p className="mt-2 text-xs text-white/35">
-          Copies with a gold For sale bar are listed. Asking price and condition are on the cover.
+          Open a listed copy to see asking price, condition, and photos of that disc. Tap any photo to zoom.
         </p>
         {listed.length > 0 && (
           <section className="mt-8 min-w-0">
             <h2 className="text-lg font-medium">For sale</h2>
-            <p className="mt-1 text-sm text-white/50">Asking price and disc condition.</p>
+            <p className="mt-1 text-sm text-white/50">
+              Asking price, disc condition, and photos of this copy.
+            </p>
             <div className="mt-4">
               <GameGrid games={listed} readOnly publicView showFilters={false} currency={data.profile.currency} />
             </div>

@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { ArtworkPicker } from "@/components/artwork-picker";
 import { FieldSelect } from "@/components/field-select";
-import { NativeFileButton, PhotoGallery } from "@/components/photo-gallery";
+import { NativeFileButton, PhotoGallery, PhotoLightbox } from "@/components/photo-gallery";
 import { RatingStars } from "@/components/rating-stars";
 import { useLibrary } from "@/components/library-provider";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,7 @@ export function GamePanel({
 }) {
   const { library, updateGame, deleteGame } = useLibrary();
   const currency = library.profile.currency;
+  const [coverOpen, setCoverOpen] = useState(false);
 
   if (!game) {
     return (
@@ -64,6 +66,39 @@ export function GamePanel({
   const extras = conditionPhotos(game);
   const copyKind = game.copyKind === "digital" ? "digital" : "disc";
   const physical = copyKind === "disc";
+  const missingCopyPhotos = listed && physical && extras.length === 0;
+
+  const copyPhotos = physical ? (
+    <section className="mt-6 min-w-0">
+      <h3 className="text-xs font-medium text-sky-300">
+        {publicView ? "This copy" : "Condition photos"}
+      </h3>
+      <p className="mt-1 text-xs text-white/45">
+        {publicView
+          ? extras.length
+            ? "Photos of the disc you would buy. Tap to zoom."
+            : "No photos of this copy yet."
+          : listed
+            ? extras.length
+              ? "These photos show on the public link. Tap to zoom."
+              : "Friends decide from these. Add the back, the disc, and any wear."
+            : "Optional shots of this copy. Separate from box art and the disc face."}
+      </p>
+      {missingCopyPhotos && !readOnly ? (
+        <p className="mt-2 rounded-lg bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+          Listed without photos of this copy. A buyer cannot judge a stock cover.
+        </p>
+      ) : null}
+      <div className="mt-3">
+        <PhotoGallery
+          photos={extras}
+          title={game.title}
+          readOnly={readOnly}
+          onChange={readOnly ? undefined : (next) => updateGame(gameId, conditionFields(next))}
+        />
+      </div>
+    </section>
+  ) : null;
 
   return (
     <aside className={hideChrome ? "min-w-0" : "rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl"}>
@@ -88,8 +123,17 @@ export function GamePanel({
         ) : null}
       </div>
 
+      {publicView && listed && game.askingPrice != null && (
+        <p className="mt-4 text-2xl font-medium">
+          {money(game.askingPrice, currency)}
+          <span className="ml-2 text-sm font-normal text-white/50">asking</span>
+        </p>
+      )}
+
+      {publicView && listed ? copyPhotos : null}
+
       <div className="mt-4">
-        <p className="mb-1 text-xs font-medium text-white/50">Your rating</p>
+        <p className="mb-1 text-xs font-medium text-white/50">{publicView ? "Rating" : "Your rating"}</p>
         <RatingStars
           value={game.rating}
           readOnly={readOnly}
@@ -154,13 +198,6 @@ export function GamePanel({
         </section>
       )}
 
-      {publicView && listed && game.askingPrice != null && (
-        <p className="mt-4 text-2xl font-medium">
-          {money(game.askingPrice, currency)}
-          <span className="ml-2 text-sm font-normal text-white/50">asking</span>
-        </p>
-      )}
-
       {!readOnly && (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <FieldSelect
@@ -200,7 +237,7 @@ export function GamePanel({
             <span>
               <span className="block font-medium">For sale</span>
               <span className="block text-xs text-white/50">
-                Shows on your public link with asking price and condition.
+                Public link shows asking price, condition, and photos of this copy.
               </span>
             </span>
             <input
@@ -347,50 +384,44 @@ export function GamePanel({
         </div>
       )}
 
-      <section className="mt-6 min-w-0">
-        <h3 className="text-xs font-medium text-sky-300">Box art</h3>
-        {game.coverImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={artSrc(game.coverImage)}
-            alt={`${game.title} box art`}
-            className="mt-3 h-40 w-28 rounded-md object-cover ring-1 ring-white/10"
-          />
-        )}
-        {!readOnly && (
-          <div className="mt-3 min-w-0 space-y-2">
-            <ArtworkPicker
-              title={game.title}
-              current={game.coverImage}
-              onPick={(url) => updateGame(gameId, { coverImage: url })}
-            />
-            <NativeFileButton
-              label="Upload box art"
-              onFiles={async (files) => {
-                const file = files[0];
-                if (file) updateGame(gameId, { coverImage: await fileToDataUrl(file) });
-              }}
-            />
-          </div>
-        )}
-      </section>
-
-      {physical && (
+      {(!publicView || !listed) && (
         <section className="mt-6 min-w-0">
-          <h3 className="text-xs font-medium text-sky-300">Condition photos</h3>
-          <p className="mt-1 text-xs text-white/45">
-            Optional shots of this copy. Separate from box art and the disc face.
-          </p>
-          <div className="mt-3">
-            <PhotoGallery
-              photos={extras}
-              title={game.title}
-              readOnly={readOnly}
-              onChange={readOnly ? undefined : (next) => updateGame(gameId, conditionFields(next))}
-            />
-          </div>
+          <h3 className="text-xs font-medium text-sky-300">Box art</h3>
+          {game.coverImage && (
+            <button
+              type="button"
+              className="mt-3 block"
+              onClick={() => setCoverOpen(true)}
+              aria-label={`Expand ${game.title} box art`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={artSrc(game.coverImage)}
+                alt={`${game.title} box art`}
+                className="h-40 w-28 rounded-md object-cover ring-1 ring-white/10"
+              />
+            </button>
+          )}
+          {!readOnly && (
+            <div className="mt-3 min-w-0 space-y-2">
+              <ArtworkPicker
+                title={game.title}
+                current={game.coverImage}
+                onPick={(url) => updateGame(gameId, { coverImage: url })}
+              />
+              <NativeFileButton
+                label="Upload box art"
+                onFiles={async (files) => {
+                  const file = files[0];
+                  if (file) updateGame(gameId, { coverImage: await fileToDataUrl(file) });
+                }}
+              />
+            </div>
+          )}
         </section>
       )}
+
+      {!(publicView && listed) ? copyPhotos : null}
 
       {!readOnly && (
         <Button
@@ -403,6 +434,17 @@ export function GamePanel({
         >
           Remove from shelf
         </Button>
+      )}
+
+      {coverOpen && game.coverImage && (
+        <PhotoLightbox
+          key={game.coverImage}
+          photos={[game.coverImage]}
+          index={0}
+          title={game.title}
+          captions={["Box art"]}
+          onClose={() => setCoverOpen(false)}
+        />
       )}
     </aside>
   );
