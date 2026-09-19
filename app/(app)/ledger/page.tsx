@@ -5,7 +5,7 @@ import { Ledger } from "@/components/ledger";
 
 export default function LedgerPage() {
   return (
-    <AppFrame showAdd>
+    <AppFrame>
       <Ledger />
     </AppFrame>
   );

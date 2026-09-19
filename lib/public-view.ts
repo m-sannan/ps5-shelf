@@ -1,3 +1,4 @@
+import { isPublicGame } from "./listing";
 import type { Game, Library, Profile } from "./types";
 
 export function toPublicGame(game: Game): Game {
@@ -15,6 +16,8 @@ export function toPublicGame(game: Game): Game {
     loans: [],
     notes: "",
     borrowedFrom: "",
+    listingNote: game.listingNote ?? "",
+    hidden: false,
   };
 }
 
@@ -26,12 +29,19 @@ export function toPublicProfile(profile: Profile): Profile {
     note: profile.note,
     currency: profile.currency,
     sharePaidPrice: false,
+    sharePublic: profile.sharePublic !== false,
+    shareCollection: profile.shareCollection !== false,
   };
 }
 
 export function toPublicLibrary(library: Library) {
+  const profile = toPublicProfile(library.profile);
+  if (profile.sharePublic === false) {
+    return { profile, games: [] as Game[], privateShelf: true };
+  }
   return {
-    profile: toPublicProfile(library.profile),
-    games: library.games.filter((game) => game.status !== "sold").map(toPublicGame),
+    profile,
+    privateShelf: false,
+    games: library.games.filter((game) => isPublicGame(game, profile)).map(toPublicGame),
   };
 }

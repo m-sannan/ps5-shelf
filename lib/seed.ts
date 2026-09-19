@@ -35,6 +35,8 @@ export const SEED_LIBRARY: Library = {
     note: "Physical copies. Local pickup. Prices in ₹.",
     currency: "INR",
     sharePaidPrice: false,
+    sharePublic: true,
+    shareCollection: true,
   },
   games: [
     game({
@@ -237,6 +239,7 @@ export const SEED_LIBRARY: Library = {
       status: "for_sale",
       condition: "good",
       notes: "Bought from Discord. Listed for pickup.",
+      listingNote: "PS5 disc. Complete in box. Pickup in my city.",
       coverColor: "#dc2626",
       coverImage:
         "https://upload.wikimedia.org/wikipedia/en/4/4b/Hitman_3_Packart.jpg",

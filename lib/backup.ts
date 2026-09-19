@@ -113,6 +113,8 @@ function parseGame(raw: unknown, index: number): Game {
         ? snapRating(row.rating) || null
         : null,
     borrowedFrom: asString(row.borrowedFrom).trim(),
+    listingNote: asString(row.listingNote),
+    hidden: row.hidden === true,
     ...photos,
     loans,
   };
@@ -134,6 +136,8 @@ function parseProfile(raw: unknown): Profile {
     note: asString(row.note),
     currency,
     sharePaidPrice: row.sharePaidPrice === true,
+    sharePublic: row.sharePublic !== false,
+    shareCollection: row.shareCollection !== false,
   };
 }
 

@@ -187,9 +187,10 @@ export function SettingsPage() {
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5">
         <p className="text-sm font-medium">Public share link</p>
         <p className="text-sm text-white/55">
-          Read-only. Friends see games for sale with asking price and condition,
-          then the rest of the library. What you paid stays private. Sold copies
-          stay hidden. The device key is never in this URL.
+          Read-only. Share is the page you send people — listings, then the collection
+          you choose to show. Hide the whole shelf or a single game from there.
+          What you paid stays private. Sold copies stay hidden. The device key is
+          never in this URL.
         </p>
         {cloud?.publicId && (
           <Input

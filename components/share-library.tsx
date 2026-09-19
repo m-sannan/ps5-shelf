@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { ShareGuideButton } from "@/components/app-frame";
 import { FieldSelect } from "@/components/field-select";
 import { GameGrid } from "@/components/game-grid";
 import { useLibrary } from "@/components/library-provider";
@@ -11,41 +12,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { publicShelfPath } from "@/lib/cloud/client";
 import { copyText, selectField } from "@/lib/copy-text";
 import { money } from "@/lib/format";
-import { conditionPhotos, isForSale } from "@/lib/photos";
+import { isForSale } from "@/lib/photos";
 import { toPublicLibrary } from "@/lib/public-view";
 import { CURRENCIES, type CurrencyCode } from "@/lib/types";
 
-type PreviewMode = "friends" | "me";
-
 export function ShareLibrary() {
-  const { library, ready, cloud, updateProfile } = useLibrary();
+  const { library, ready, cloud, updateProfile, updateGame } = useLibrary();
   const [copied, setCopied] = useState(false);
   const [hint, setHint] = useState("");
-  const [mode, setMode] = useState<PreviewMode>("friends");
   const fieldRef = useRef<HTMLInputElement>(null);
-  const friends = useMemo(() => toPublicLibrary(library), [library]);
-  const shown = mode === "friends" ? friends : library;
-  const forSale = useMemo(
-    () => shown.games.filter(isForSale),
-    [shown.games],
-  );
-  const rest = useMemo(
-    () =>
-      shown.games.filter((game) =>
-        mode === "friends" ? !isForSale(game) : game.status !== "sold" && !isForSale(game),
-      ),
-    [shown.games, mode],
-  );
-  const sold = useMemo(
-    () => (mode === "me" ? library.games.filter((game) => game.status === "sold") : []),
-    [library.games, mode],
-  );
-  const listedWithoutPhotos = useMemo(
-    () => forSale.filter((game) => conditionPhotos(game).length === 0).length,
-    [forSale],
-  );
-  const currency = shown.profile.currency;
+  const publicOn = library.profile.sharePublic !== false;
+  const showCollection = library.profile.shareCollection !== false;
+  const preview = useMemo(() => toPublicLibrary(library), [library]);
+  const forSale = preview.games.filter(isForSale);
+  const rest = preview.games.filter((game) => !isForSale(game));
+  const hidden = library.games.filter((game) => game.hidden);
   const asking = forSale.reduce((sum, game) => sum + (game.askingPrice ?? 0), 0);
+  const currency = library.profile.currency;
   const shareUrl =
     typeof window !== "undefined" && cloud?.publicId
       ? `${window.location.origin}${publicShelfPath(cloud.publicId)}`
@@ -78,35 +61,17 @@ export function ShareLibrary() {
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Share</p>
-          <h1 className="mt-1 text-2xl font-medium">
-            {library.profile.name || "Your shelf"}
-          </h1>
+          <h1 className="mt-1 text-2xl font-medium">The page you send people</h1>
           <p className="mt-2 max-w-xl text-sm text-white/60">
-            Toggle Friends to see the public link. Toggle Me to edit your seller card
-            and check the private details friends never get.
+            Library is your private shelf. This link is the public listing — copies for sale,
+            plus the collection you want to show off. Hide the whole shelf, hide one game,
+            or show only what is listed.
           </p>
         </div>
-        <Button onClick={copyLink}>{copied ? "Link copied" : "Copy public link"}</Button>
-      </div>
-
-      <div className="flex gap-1.5">
-        {(
-          [
-            ["friends", "Friends"],
-            ["me", "Me"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setMode(id)}
-            className={`rounded-full px-3.5 py-1.5 text-sm ${
-              mode === id ? "bg-[#2f2f32] text-white" : "text-white/45 hover:text-white"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+        <div className="flex items-center gap-3">
+          <ShareGuideButton />
+          <Button onClick={copyLink}>{copied ? "Link copied" : "Copy public link"}</Button>
+        </div>
       </div>
 
       {shareUrl && (
@@ -122,158 +87,218 @@ export function ShareLibrary() {
         </div>
       )}
 
-      {mode === "me" ? (
-        <section className="rounded-2xl bg-white/4 p-5 ring-1 ring-white/8">
-          <p className="font-medium">Seller card</p>
-          <p className="mt-1 text-sm text-white/50">
-            This is the header friends see on your public link. City and contact are how they reach you about a listed copy.
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <Field label="Name">
-              <Input
-                value={library.profile.name}
-                onChange={(event) =>
-                  updateProfile({ ...library.profile, name: event.target.value })
-                }
-              />
-            </Field>
-            <Field label="City">
-              <Input
-                value={library.profile.city}
-                onChange={(event) =>
-                  updateProfile({ ...library.profile, city: event.target.value })
-                }
-              />
-            </Field>
-            <FieldSelect
-              id="currency"
-              label="Currency"
-              value={library.profile.currency}
-              onChange={(value) =>
-                updateProfile({
-                  ...library.profile,
-                  currency: value as CurrencyCode,
-                })
-              }
-              options={CURRENCIES.map((item) => ({
-                value: item.code,
-                label: `${item.code} — ${item.label}`,
-              }))}
-            />
-            <Field label="Contact">
-              <Input
-                value={library.profile.contact}
-                onChange={(event) =>
-                  updateProfile({ ...library.profile, contact: event.target.value })
-                }
-              />
-            </Field>
-            <div className="sm:col-span-2">
-              <Field label="Share note">
-                <Textarea
-                  value={library.profile.note}
-                  onChange={(event) =>
-                    updateProfile({ ...library.profile, note: event.target.value })
-                  }
-                />
-              </Field>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <section>
-          <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Public shelf</p>
-          <h2 className="mt-1 text-xl font-medium">{`${friends.profile.name}'s library`}</h2>
-          <p className="mt-1 text-sm text-white/50">
-            {friends.profile.city}
-            {friends.profile.city && friends.profile.contact ? " · " : ""}
-            {friends.profile.contact}
-          </p>
-          {friends.profile.note ? (
-            <p className="mt-3 max-w-2xl text-sm text-white/70">{friends.profile.note}</p>
-          ) : (
-            <p className="mt-3 text-sm text-white/40">
-              Add a share note on Me so friends know how to reach you.
-            </p>
-          )}
-        </section>
-      )}
-
-      <div className="flex flex-wrap gap-2 text-sm text-white/60">
-        <span>{forSale.length} for sale</span>
-        <span>·</span>
-        <span>{rest.length} on the shelf</span>
-        {mode === "me" && sold.length > 0 && (
-          <>
-            <span>·</span>
-            <span>{sold.length} sold</span>
-          </>
-        )}
-        {forSale.length > 0 && (
-          <>
-            <span>·</span>
-            <span>Asking {money(asking, currency)}</span>
-          </>
-        )}
-      </div>
-
-      {listedWithoutPhotos > 0 && (
-        <p className="rounded-xl bg-amber-400/10 px-4 py-3 text-sm text-amber-100">
-          {listedWithoutPhotos === 1
-            ? "One listed copy has no photos of the disc. Friends only see box art until you add shots of this copy."
-            : `${listedWithoutPhotos} listed copies have no photos of the disc. Friends only see box art until you add shots of those copies.`}
+      <section className="rounded-2xl bg-white/4 p-5 ring-1 ring-white/8">
+        <p className="font-medium">Public page</p>
+        <p className="mt-1 text-sm text-white/50">
+          These switches change what friends see on the link. They do not change your Library.
         </p>
+        <div className="mt-4 space-y-3">
+          <Toggle
+            label="Public link"
+            hint="Off: the link says this shelf is private. Listings and the collection are hidden."
+            checked={publicOn}
+            onChange={(checked) => updateProfile({ ...library.profile, sharePublic: checked })}
+          />
+          <Toggle
+            label="Show my collection"
+            hint="On is the brag shelf. Off shows only copies for sale."
+            checked={showCollection}
+            disabled={!publicOn}
+            onChange={(checked) => updateProfile({ ...library.profile, shareCollection: checked })}
+          />
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <Field label="Name">
+            <Input
+              value={library.profile.name}
+              onChange={(event) =>
+                updateProfile({ ...library.profile, name: event.target.value })
+              }
+            />
+          </Field>
+          <Field label="City">
+            <Input
+              value={library.profile.city}
+              onChange={(event) =>
+                updateProfile({ ...library.profile, city: event.target.value })
+              }
+            />
+          </Field>
+          <FieldSelect
+            id="currency"
+            label="Currency"
+            value={library.profile.currency}
+            onChange={(value) =>
+              updateProfile({
+                ...library.profile,
+                currency: value as CurrencyCode,
+              })
+            }
+            options={CURRENCIES.map((item) => ({
+              value: item.code,
+              label: `${item.code} — ${item.label}`,
+            }))}
+          />
+          <Field label="Contact">
+            <Input
+              value={library.profile.contact}
+              onChange={(event) =>
+                updateProfile({ ...library.profile, contact: event.target.value })
+              }
+            />
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Share note">
+              <Textarea
+                value={library.profile.note}
+                onChange={(event) =>
+                  updateProfile({ ...library.profile, note: event.target.value })
+                }
+                placeholder="Local pickup. Evenings. UPI."
+              />
+            </Field>
+          </div>
+        </div>
+      </section>
+
+      {hidden.length > 0 && (
+        <section className="rounded-2xl bg-white/4 p-5 ring-1 ring-white/8">
+          <p className="font-medium">Hidden from the link</p>
+          <p className="mt-1 text-sm text-white/50">Still in your Library. Friends cannot see them.</p>
+          <ul className="mt-3 space-y-2">
+            {hidden.map((game) => (
+              <li key={game.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="truncate">{game.title}</span>
+                <button
+                  type="button"
+                  className="shrink-0 text-white/50 hover:text-white"
+                  onClick={() => updateGame(game.id, { hidden: false })}
+                >
+                  Show
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
-      <section className="min-w-0">
-        <h2 className="text-lg font-medium">For sale</h2>
-        {forSale.length === 0 ? (
-          <p className="mt-2 text-sm text-white/50">
-            Nothing listed. Open a physical disc in Library, turn on For sale, and set an asking price.
+      <section>
+        <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Preview</p>
+        <h2 className="mt-1 text-xl font-medium">What they see</h2>
+        {!publicOn ? (
+          <p className="mt-4 rounded-2xl bg-white/4 px-4 py-8 text-center text-sm text-white/55 ring-1 ring-white/8">
+            The public link currently says this shelf is private.
           </p>
         ) : (
-          <div className="mt-4">
-            <GameGrid
-              games={forSale}
-              readOnly={mode === "friends"}
-              publicView={mode === "friends"}
-              showFilters={false}
-              currency={currency}
-            />
-          </div>
+          <>
+            <h3 className="mt-1 text-2xl font-medium">{`${preview.profile.name}'s library`}</h3>
+            <p className="mt-1 text-sm text-white/50">
+              {preview.profile.city}
+              {preview.profile.city && preview.profile.contact ? " · " : ""}
+              {preview.profile.contact}
+            </p>
+            {preview.profile.note ? (
+              <p className="mt-3 max-w-2xl text-sm text-white/70">{preview.profile.note}</p>
+            ) : (
+              <p className="mt-3 text-sm text-white/40">
+                Add a share note so people know how to reach you.
+              </p>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2 text-sm text-white/60">
+              <span>{forSale.length} for sale</span>
+              {showCollection && (
+                <>
+                  <span>·</span>
+                  <span>{rest.length} on the shelf</span>
+                </>
+              )}
+              {forSale.length > 0 && (
+                <>
+                  <span>·</span>
+                  <span>Asking {money(asking, currency)}</span>
+                </>
+              )}
+            </div>
+          </>
         )}
       </section>
 
-      {rest.length > 0 && (
-        <section className="min-w-0">
-          <h2 className="text-lg font-medium">On the shelf</h2>
-          <p className="mt-1 text-sm text-white/50">
-            {mode === "friends"
-              ? "The rest of the collection. Not for sale."
-              : "Your copies, including paid price and who you borrowed from."}
-          </p>
-          <div className="mt-4">
-            <GameGrid
-              games={rest}
-              readOnly={mode === "friends"}
-              publicView={mode === "friends"}
-              showFilters={false}
-              currency={currency}
-            />
-          </div>
-        </section>
-      )}
+      {publicOn && (
+        <>
+          <section className="min-w-0">
+            <h2 className="text-lg font-medium">For sale</h2>
+            <p className="mt-1 text-sm text-white/50">
+              Listings look like a Discord post — title, price, city, photos of this copy, and the text you wrote.
+            </p>
+            {forSale.length === 0 ? (
+              <p className="mt-3 text-sm text-white/50">
+                Nothing listed. Open a physical disc in Library, turn on For sale, and write what a buyer needs to know.
+              </p>
+            ) : (
+              <div className="mt-4">
+                <GameGrid
+                  games={forSale}
+                  readOnly
+                  publicView
+                  showFilters={false}
+                  layout="listings"
+                  copyListing
+                  currency={currency}
+                  seller={preview.profile}
+                />
+              </div>
+            )}
+          </section>
 
-      {sold.length > 0 && (
-        <section className="min-w-0">
-          <h2 className="text-lg font-medium">Sold</h2>
-          <p className="mt-1 text-sm text-white/50">Hidden from the public link.</p>
-          <div className="mt-4">
-            <GameGrid games={sold} showFilters={false} currency={currency} />
-          </div>
-        </section>
+          {showCollection && rest.length > 0 && (
+            <section className="min-w-0">
+              <h2 className="text-lg font-medium">Collection</h2>
+              <p className="mt-1 text-sm text-white/50">The rest of the shelf. Not for sale.</p>
+              <div className="mt-4">
+                <GameGrid
+                  games={rest}
+                  readOnly
+                  publicView
+                  showFilters={false}
+                  currency={currency}
+                  seller={preview.profile}
+                />
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
+  );
+}
+
+function Toggle({
+  label,
+  hint,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className={`flex items-center justify-between gap-3 text-sm ${disabled ? "opacity-40" : ""}`}>
+      <span>
+        <span className="block font-medium">{label}</span>
+        <span className="block text-xs text-white/50">{hint}</span>
+      </span>
+      <input
+        type="checkbox"
+        className="size-4 shrink-0"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+    </label>
   );
 }
 

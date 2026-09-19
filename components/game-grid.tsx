@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { CoverMarks, DiscFace, DiscPicker } from "@/components/game-case";
 import { GamePanel } from "@/components/game-panel";
+import { ListingCard } from "@/components/listing-card";
 import { PhotoLightbox } from "@/components/photo-gallery";
 import { RatingStars } from "@/components/rating-stars";
 import { useLibrary } from "@/components/library-provider";
@@ -24,6 +25,7 @@ import {
   CONDITION_LABELS,
   type CurrencyCode,
   type Game,
+  type Profile,
 } from "@/lib/types";
 
 type FilterId = "all" | "playing" | "done" | "for_sale" | "sold";
@@ -34,12 +36,18 @@ export function GameGrid({
   publicView = false,
   showFilters,
   currency,
+  layout = "grid",
+  copyListing = false,
+  seller,
 }: {
   games?: Game[];
   readOnly?: boolean;
   publicView?: boolean;
   showFilters?: boolean;
   currency?: CurrencyCode;
+  layout?: "grid" | "listings";
+  copyListing?: boolean;
+  seller?: Pick<Profile, "city" | "currency" | "contact">;
 }) {
   const { library, updateGame } = useLibrary();
   const filtersOn = showFilters ?? true;
@@ -49,6 +57,11 @@ export function GameGrid({
   const [shelfView, setShelfView] = useState<"art" | "disc">("art");
   const [shotIndex, setShotIndex] = useState<number | null>(null);
   const moneyCurrency = currency ?? library.profile.currency;
+  const sellerCard = seller ?? {
+    city: library.profile.city,
+    currency: moneyCurrency,
+    contact: library.profile.contact,
+  };
   const shelfToggle = !publicView && !readOnly;
 
   const source = gamesProp ?? library.games;
@@ -166,9 +179,11 @@ export function GameGrid({
         </div>
       )}
 
+      {layout !== "listings" && (
       <p className="mt-5 text-[11px] uppercase tracking-[0.22em] text-white/35">
         {publicView ? "Copies" : "Library"} {games.length}
       </p>
+      )}
 
       {games.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center text-center">
@@ -192,6 +207,18 @@ export function GameGrid({
                   ? "Nothing listed in this view."
                   : "Add a game, or clear the search and filters."}
           </p>
+        </div>
+      ) : layout === "listings" ? (
+        <div className="mt-4 space-y-4">
+          {games.map((game) => (
+            <ListingCard
+              key={game.id}
+              game={game}
+              profile={sellerCard}
+              onOpen={() => setOpenedId(game.id)}
+              canCopy={copyListing}
+            />
+          ))}
         </div>
       ) : (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -333,6 +360,7 @@ export function GameGrid({
                 readOnly={readOnly}
                 hideChrome
                 publicView={publicView}
+                currency={sellerCard.currency}
                 onClose={() => setOpenedId(null)}
                 emptyHint=""
               />

@@ -29,8 +29,10 @@ export function emptyLibrary(name: string): Library {
       name,
       contact: "",
       city: "",
-      note: "Physical PS5 copies.",
+      note: "Physical PS5 copies. Local pickup.",
       currency: "INR",
+      sharePublic: true,
+      shareCollection: true,
     },
     games: [],
   };

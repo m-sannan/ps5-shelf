@@ -74,7 +74,7 @@ export function Ledger() {
             {library.profile.name || "Your shelf"}
           </h1>
           <p className="mt-2 text-sm text-white/50">
-            Receipts stay here. The seller card is on Share, with a Friends / Me preview.
+            Receipts stay here. City, contact, and listings live on Share — that’s the page you send people.
           </p>
         </div>
         <button

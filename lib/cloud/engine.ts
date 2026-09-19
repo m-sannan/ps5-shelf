@@ -178,6 +178,7 @@ export function publicShelf(blob: CloudBlob, publicId: string) {
   return {
     publicId: shelf.publicId,
     updatedAt: shelf.updatedAt,
+    privateShelf: published.privateShelf,
     profile: published.profile,
     games: published.games,
   };

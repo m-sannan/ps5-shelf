@@ -30,6 +30,7 @@ import {
   COPY_KINDS,
   type Condition,
   type CopyKind,
+  type CurrencyCode,
   type Game,
 } from "@/lib/types";
 
@@ -40,6 +41,7 @@ export function GamePanel({
   readOnly = false,
   hideChrome = false,
   publicView = false,
+  currency: currencyProp,
 }: {
   game: Game | null;
   onClose: () => void;
@@ -47,9 +49,10 @@ export function GamePanel({
   readOnly?: boolean;
   hideChrome?: boolean;
   publicView?: boolean;
+  currency?: CurrencyCode;
 }) {
   const { library, updateGame, deleteGame } = useLibrary();
-  const currency = library.profile.currency;
+  const currency = currencyProp ?? library.profile.currency;
   const [coverOpen, setCoverOpen] = useState(false);
 
   if (!game) {
@@ -129,6 +132,12 @@ export function GamePanel({
           <span className="ml-2 text-sm font-normal text-white/50">asking</span>
         </p>
       )}
+
+      {publicView && listed && game.listingNote?.trim() ? (
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-white/80">
+          {game.listingNote.trim()}
+        </p>
+      ) : null}
 
       {publicView && listed ? copyPhotos : null}
 
@@ -261,6 +270,7 @@ export function GamePanel({
             />
           </label>
           {listed && !sold && (
+            <>
             <div className="grid gap-1.5">
               <Label htmlFor={`ask-${gameId}`}>Asking price</Label>
               <Input
@@ -277,6 +287,19 @@ export function GamePanel({
                 }}
               />
             </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor={`listing-${gameId}`}>What friends read</Label>
+              <p className="text-xs text-white/50">
+                This is the listing text — PS5 vs PS4, complete in box, pickup only. Not your private notes.
+              </p>
+              <Textarea
+                id={`listing-${gameId}`}
+                value={game.listingNote ?? ""}
+                placeholder="PS5 disc. Complete. Pickup in my city."
+                onChange={(event) => updateGame(gameId, { listingNote: event.target.value })}
+              />
+            </div>
+            </>
           )}
         </section>
       )}
@@ -324,6 +347,24 @@ export function GamePanel({
             </div>
           )}
         </section>
+      )}
+
+      {!publicView && (
+        <label className="mt-5 flex items-center justify-between gap-3 text-sm">
+          <span>
+            <span className="block font-medium">Show on public link</span>
+            <span className="block text-xs text-white/50">
+              Off hides this copy from Share, even if it is listed.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            className="size-4 shrink-0"
+            checked={game.hidden !== true}
+            disabled={readOnly}
+            onChange={(event) => updateGame(gameId, { hidden: !event.target.checked })}
+          />
+        </label>
       )}
 
       {!publicView && physical && (

@@ -104,6 +104,7 @@ export async function fetchPublicShelf(publicId: string) {
   return await request<{
     publicId: string;
     updatedAt: string;
+    privateShelf?: boolean;
     profile: Library["profile"];
     games: Library["games"];
   }>(`/public/${encodeURIComponent(publicId)}`);

@@ -154,6 +154,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       if (!session) return;
       if (pushTimer.current) window.clearTimeout(pushTimer.current);
       pushTimer.current = window.setTimeout(() => {
+        pushTimer.current = null;
         setSyncing(true);
         pushNow(next, session)
           .then(() => setError(""))
@@ -165,6 +166,16 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     },
     [persist, pushNow, setError, setSyncing],
   );
+
+  useEffect(() => {
+    return () => {
+      if (!pushTimer.current) return;
+      window.clearTimeout(pushTimer.current);
+      pushTimer.current = null;
+      const state = getStoreSnapshot();
+      if (state.cloud) void pushNow(state.library, state.cloud);
+    };
+  }, [pushNow]);
 
   const updateProfile = useCallback(
     (profile: Profile) => schedulePush({ ...library, profile }),
@@ -184,6 +195,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
             copyKind: game.copyKind ?? "disc",
             rating: game.rating ?? null,
             borrowedFrom: game.borrowedFrom?.trim() ?? "",
+            listingNote: game.listingNote ?? "",
+            hidden: game.hidden === true,
             photos: game.photos ?? [],
             coverImage: game.coverImage ?? null,
             casePhoto: game.casePhoto ?? null,
@@ -351,8 +364,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
               name,
               contact: "",
               city: "",
-              note: "Physical PS5 copies.",
+              note: "Physical PS5 copies. Local pickup.",
               currency: "INR" as const,
+              sharePublic: true,
+              shareCollection: true,
             },
             games: [],
           };

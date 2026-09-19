@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { ArtworkPicker } from "@/components/artwork-picker";
 import { FieldSelect } from "@/components/field-select";
 import { NativeFileButton, PhotoGallery } from "@/components/photo-gallery";
@@ -32,7 +33,7 @@ import {
 
 type PopularHit = { title: string; cover: string | null };
 
-export function AddGameSheet() {
+export function AddGameSheet({ variant = "header" }: { variant?: "header" | "fab" }) {
   const { addGame, library } = useLibrary();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -45,6 +46,7 @@ export function AddGameSheet() {
   const [borrowedFrom, setBorrowedFrom] = useState("");
   const [listForSale, setListForSale] = useState(false);
   const [askingPrice, setAskingPrice] = useState("");
+  const [listingNote, setListingNote] = useState("");
   const [condition, setCondition] = useState<Condition>("near_mint");
   const [copyKind, setCopyKind] = useState<CopyKind>("disc");
   const [rating, setRating] = useState<number | null>(null);
@@ -86,6 +88,7 @@ export function AddGameSheet() {
     setBorrowedFrom("");
     setListForSale(false);
     setAskingPrice("");
+    setListingNote("");
     setCondition("near_mint");
     setCopyKind("disc");
     setRating(null);
@@ -111,6 +114,8 @@ export function AddGameSheet() {
       copyKind,
       rating,
       borrowedFrom: physical ? borrowedFrom.trim() : "",
+      listingNote: listed ? listingNote.trim() : "",
+      hidden: false,
       notes: notes.trim(),
       coverColor: "#3b82f6",
       coverImage: art,
@@ -145,10 +150,20 @@ export function AddGameSheet() {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <Button type="button" onClick={() => setOpen(true)} size="sm">
-        <span className="sm:hidden">Add</span>
-        <span className="hidden sm:inline">Add a game</span>
-      </Button>
+      {variant === "fab" ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="absolute bottom-[4.75rem] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-white text-black shadow-lg sm:hidden"
+          aria-label="Add a game"
+        >
+          <Plus className="size-6" />
+        </button>
+      ) : (
+        <Button type="button" onClick={() => setOpen(true)} size="sm" className="hidden sm:inline-flex">
+          Add a game
+        </Button>
+      )}
       <SheetContent
         side="right"
         className="h-dvh w-full max-w-full gap-0 overflow-hidden p-0 sm:inset-y-5 sm:right-5 sm:left-auto sm:h-auto sm:w-[min(32rem,calc(100vw-2.5rem))] sm:max-w-none sm:rounded-[22px] sm:border sm:border-white/10 data-[side=right]:w-full sm:data-[side=right]:w-[min(32rem,calc(100vw-2.5rem))]"
@@ -371,6 +386,7 @@ export function AddGameSheet() {
                     />
                   </label>
                   {listForSale && (
+                    <>
                     <div className="grid gap-1.5">
                       <Label htmlFor="ask">Asking price</Label>
                       <Input
@@ -382,6 +398,19 @@ export function AddGameSheet() {
                         onChange={(event) => setAskingPrice(event.target.value)}
                       />
                     </div>
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="listing-note">What friends read</Label>
+                      <p className="text-xs text-white/50">
+                        PS5 disc not PS4, complete in box, pickup only — this shows on the public listing.
+                      </p>
+                      <Textarea
+                        id="listing-note"
+                        value={listingNote}
+                        onChange={(event) => setListingNote(event.target.value)}
+                        placeholder="PS5 version. Complete. Pickup in my city."
+                      />
+                    </div>
+                    </>
                   )}
                 </section>
               )}

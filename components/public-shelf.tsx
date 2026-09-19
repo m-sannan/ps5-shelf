@@ -18,6 +18,7 @@ export function PublicShelf({ publicId }: { publicId: string }) {
   const [data, setData] = useState<{
     profile: Profile;
     games: Game[];
+    privateShelf?: boolean;
   } | null>(null);
   const [error, setError] = useState("");
 
@@ -28,7 +29,11 @@ export function PublicShelf({ publicId }: { publicId: string }) {
       try {
         const payload = await fetchPublicShelf(publicId);
         if (cancelled) return;
-        setData({ profile: payload.profile, games: payload.games });
+        setData({
+          profile: payload.profile,
+          games: payload.games,
+          privateShelf: payload.privateShelf,
+        });
         return;
       } catch (err: unknown) {
         const state = getStoreSnapshot();
@@ -54,7 +59,11 @@ export function PublicShelf({ publicId }: { publicId: string }) {
             }
             const payload = await fetchPublicShelf(publicId);
             if (cancelled) return;
-            setData({ profile: payload.profile, games: payload.games });
+            setData({
+              profile: payload.profile,
+              games: payload.games,
+              privateShelf: payload.privateShelf,
+            });
             return;
           } catch {
             if (cancelled) return;
@@ -92,9 +101,26 @@ export function PublicShelf({ publicId }: { publicId: string }) {
     );
   }
 
+  if (data.privateShelf) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-[#0b0b0d] px-4">
+        <div className="max-w-md text-center">
+          <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Public shelf</p>
+          <h1 className="mt-2 text-2xl font-medium">{`${data.profile.name}'s library`}</h1>
+          <p className="mt-3 text-sm text-white/55">This shelf is private right now.</p>
+        </div>
+      </div>
+    );
+  }
+
   const listed = data.games.filter(isForSale);
   const rest = data.games.filter((game) => !isForSale(game));
   const asking = listed.reduce((sum, game) => sum + (game.askingPrice ?? 0), 0);
+  const seller = {
+    city: data.profile.city,
+    currency: data.profile.currency,
+    contact: data.profile.contact,
+  };
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] sm:px-5 sm:py-5">
@@ -108,38 +134,55 @@ export function PublicShelf({ publicId }: { publicId: string }) {
         </p>
         <p className="mt-3 max-w-2xl text-sm text-white/70">{data.profile.note}</p>
         <div className="mt-4 flex flex-wrap gap-2 text-sm text-white/60">
-          <span>{data.games.length} copies</span>
           {listed.length > 0 && (
             <>
-              <span>·</span>
               <span>{listed.length} for sale</span>
               <span>·</span>
               <span>Asking {money(asking, data.profile.currency)}</span>
             </>
           )}
+          {rest.length > 0 && (
+            <>
+              {listed.length > 0 ? <span>·</span> : null}
+              <span>{rest.length} on the shelf</span>
+            </>
+          )}
         </div>
-        <p className="mt-2 text-xs text-white/35">
-          Open a listed copy to see asking price, condition, and photos of that disc. Tap any photo to zoom.
-        </p>
         {listed.length > 0 && (
           <section className="mt-8 min-w-0">
             <h2 className="text-lg font-medium">For sale</h2>
-            <p className="mt-1 text-sm text-white/50">
-              Asking price, disc condition, and photos of this copy.
-            </p>
+            <p className="mt-1 text-sm text-white/50">Tap a photo to zoom. Tap the title for the full copy.</p>
             <div className="mt-4">
-              <GameGrid games={listed} readOnly publicView showFilters={false} currency={data.profile.currency} />
+              <GameGrid
+                games={listed}
+                readOnly
+                publicView
+                showFilters={false}
+                layout="listings"
+                currency={data.profile.currency}
+                seller={seller}
+              />
             </div>
           </section>
         )}
         {rest.length > 0 && (
           <section className="mt-10">
-            <h2 className="text-lg font-medium">On the shelf</h2>
-            <p className="mt-1 text-sm text-white/50">The rest of the collection.</p>
+            <h2 className="text-lg font-medium">Collection</h2>
+            <p className="mt-1 text-sm text-white/50">The rest of the shelf.</p>
             <div className="mt-4">
-              <GameGrid games={rest} readOnly publicView showFilters={false} currency={data.profile.currency} />
+              <GameGrid
+                games={rest}
+                readOnly
+                publicView
+                showFilters={false}
+                currency={data.profile.currency}
+                seller={seller}
+              />
             </div>
           </section>
+        )}
+        {listed.length === 0 && rest.length === 0 && (
+          <p className="mt-10 text-sm text-white/50">Nothing on this public page yet.</p>
         )}
         <p className="mt-8 text-xs text-white/30">{publicShelfPath(publicId)}</p>
       </div>

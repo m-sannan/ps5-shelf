@@ -48,6 +48,8 @@ export type Game = {
   status: PlayStatus;
   condition: Condition;
   notes: string;
+  listingNote?: string;
+  hidden?: boolean;
   coverColor: string;
   coverImage: string | null;
   discPhoto: string | null;
@@ -66,6 +68,8 @@ export type Profile = {
   note: string;
   currency: CurrencyCode;
   sharePaidPrice?: boolean;
+  sharePublic?: boolean;
+  shareCollection?: boolean;
 };
 
 export type Library = {
