@@ -1,6 +1,8 @@
-import type { Game } from "./types";
+import type { Game, PlayStatus } from "./types";
 
 export const MAX_CONDITION_PHOTOS = 5;
+
+export type PlayLane = "shelf" | "playing" | "done";
 
 /** Extra shots of the physical copy. Never overwrites box art or the disc face. */
 export function conditionPhotos(game: Pick<Game, "photos" | "casePhoto">): string[] {
@@ -26,6 +28,34 @@ export function isForSale(game: Pick<Game, "status" | "askingPrice">) {
   if (game.status === "sold") return false;
   if (game.status === "for_sale") return true;
   return game.askingPrice != null && game.askingPrice > 0;
+}
+
+export function isPlaying(game: Pick<Game, "status">) {
+  return game.status === "in_progress" || game.status === "completed_still_playing";
+}
+
+export function isCompleted(game: Pick<Game, "status">) {
+  return game.status === "completed" || game.status === "completed_still_playing";
+}
+
+export function playLane(status: PlayStatus): PlayLane {
+  if (status === "in_progress" || status === "completed_still_playing") return "playing";
+  if (status === "completed") return "done";
+  return "shelf";
+}
+
+export function statusForLane(lane: PlayLane, current: PlayStatus): PlayStatus {
+  if (lane === "playing") return "in_progress";
+  if (lane === "done") return "completed";
+  if (current === "sold" || current === "for_sale" || current === "lent_out") return "on_shelf";
+  return "on_shelf";
+}
+
+export function playLabel(status: PlayStatus) {
+  if (status === "sold") return "Sold";
+  if (status === "in_progress" || status === "completed_still_playing") return "Playing";
+  if (status === "completed") return "Done";
+  return "On the shelf";
 }
 
 export function shelfStatus(status: Game["status"]): "on_shelf" | "for_sale" | "sold" {

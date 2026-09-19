@@ -30,8 +30,16 @@ function CoverArt({ game }: { game: Game }) {
   );
 }
 
-export function CoverMarks({ game }: { game: Game }) {
-  const listed = game.status === "for_sale" || (game.status !== "sold" && (game.askingPrice ?? 0) > 0);
+export function CoverMarks({
+  game,
+  compact = false,
+}: {
+  game: Game;
+  compact?: boolean;
+}) {
+  const listed =
+    game.status === "for_sale" ||
+    (game.status !== "sold" && (game.askingPrice ?? 0) > 0);
   return (
     <>
       {game.copyKind === "digital" && game.status !== "sold" ? (
@@ -46,9 +54,15 @@ export function CoverMarks({ game }: { game: Game }) {
           </span>
         </span>
       ) : listed ? (
-        <span className="absolute inset-x-0 bottom-0 z-10 bg-amber-400 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-black">
-          For sale
-        </span>
+        compact ? (
+          <span className="absolute left-1.5 top-1.5 z-10 rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-black">
+            For sale
+          </span>
+        ) : (
+          <span className="absolute inset-x-0 bottom-0 z-10 bg-amber-400 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-black">
+            For sale
+          </span>
+        )
       ) : null}
     </>
   );
@@ -111,10 +125,20 @@ export function GameCase({
   );
 }
 
-export function DiscFace({ game, size = 180 }: { game: Game; size?: number }) {
+export function DiscFace({
+  game,
+  size = 180,
+}: {
+  game: Game;
+  size?: number | "fill";
+}) {
   const art = discArt(game);
+  const fill = size === "fill";
   return (
-    <div className="ps-disc" style={{ width: size, height: size }}>
+    <div
+      className="ps-disc"
+      style={fill ? { width: "100%", height: "100%", aspectRatio: "1" } : { width: size, height: size }}
+    >
       {art ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={artSrc(art)} alt="" className="ps-disc-art" />
