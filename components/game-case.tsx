@@ -1,6 +1,9 @@
 "use client";
 
+import { useRef } from "react";
 import { artSrc } from "@/lib/art-src";
+import { fileToDataUrl } from "@/lib/file";
+import { discArt } from "@/lib/photos";
 import type { Game } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +27,30 @@ function CoverArt({ game }: { game: Game }) {
     >
       <p className="text-left text-base font-semibold leading-tight">{game.title}</p>
     </div>
+  );
+}
+
+export function CoverMarks({ game }: { game: Game }) {
+  const listed = game.status === "for_sale" || (game.status !== "sold" && (game.askingPrice ?? 0) > 0);
+  return (
+    <>
+      {game.copyKind === "digital" && game.status !== "sold" ? (
+        <span className="absolute left-1.5 top-1.5 z-10 rounded bg-sky-500/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+          Digital
+        </span>
+      ) : null}
+      {game.status === "sold" ? (
+        <span className="absolute inset-0 z-10 grid place-items-center bg-black/45">
+          <span className="-rotate-12 rounded border-2 border-white px-3 py-1 text-[11px] font-bold tracking-[0.28em] text-white shadow-lg">
+            SOLD
+          </span>
+        </span>
+      ) : listed ? (
+        <span className="absolute inset-x-0 bottom-0 z-10 bg-amber-400 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-[0.18em] text-black">
+          For sale
+        </span>
+      ) : null}
+    </>
   );
 }
 
@@ -55,8 +82,9 @@ export function GameCase({
           <span>PS5</span>
           <span className="tracking-[0.2em]">PLAYSTATION</span>
         </span>
-        <span className="game-case-art">
+        <span className="game-case-art relative overflow-hidden">
           <CoverArt game={game} />
+          <CoverMarks game={game} />
         </span>
       </span>
     </>
@@ -84,7 +112,7 @@ export function GameCase({
 }
 
 export function DiscFace({ game, size = 180 }: { game: Game; size?: number }) {
-  const art = game.discPhoto || game.coverImage;
+  const art = discArt(game);
   return (
     <div className="ps-disc" style={{ width: size, height: size }}>
       {art ? (
@@ -103,3 +131,49 @@ export function DiscFace({ game, size = 180 }: { game: Game; size?: number }) {
     </div>
   );
 }
+
+export function DiscPicker({
+  game,
+  size = 108,
+  onPick,
+  readOnly = false,
+}: {
+  game: Game;
+  size?: number;
+  onPick?: (url: string) => void;
+  readOnly?: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const canEdit = Boolean(onPick) && !readOnly;
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        disabled={!canEdit}
+        onClick={() => inputRef.current?.click()}
+        className="block rounded-full disabled:cursor-default"
+        aria-label={canEdit ? "Upload a disc photo" : `${game.title} disc`}
+      >
+        <DiscFace game={game} size={size} />
+      </button>
+      {canEdit ? (
+        <>
+          <p className="text-xs text-white/40">Tap the disc to change its photo</p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file && onPick) onPick(await fileToDataUrl(file));
+            }}
+          />
+        </>
+      ) : null}
+    </div>
+  );
+}
+

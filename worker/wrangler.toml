@@ -1,0 +1,17 @@
+name = "crate-shelf"
+main = "src/index.ts"
+compatibility_date = "2026-09-15"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Optional CORS origin for the Vercel app
+APP_ORIGIN = "https://ps5-shelf.vercel.app"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "crate-shelf"
+database_id = "replace-with-d1-id"
+
+[[r2_buckets]]
+binding = "ART"
+bucket_name = "crate-shelf-art"

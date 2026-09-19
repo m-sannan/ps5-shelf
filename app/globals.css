@@ -125,6 +125,14 @@
     @apply bg-background text-foreground;
     background: #02040a;
     min-height: 100%;
+    color-scheme: dark;
+  }
+
+  select,
+  option {
+    color-scheme: dark;
+    background-color: #1c1c1e;
+    color: #f4f4f5;
   }
 
   .font-heading {

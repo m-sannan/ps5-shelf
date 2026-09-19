@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { ArtworkPicker } from "@/components/artwork-picker";
-import { DiscFace } from "@/components/game-case";
+import { FieldSelect } from "@/components/field-select";
+import { NativeFileButton, PhotoGallery } from "@/components/photo-gallery";
+import { RatingStars } from "@/components/rating-stars";
 import { useLibrary } from "@/components/library-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,48 +13,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { artSrc } from "@/lib/art-src";
 import { fileToDataUrl } from "@/lib/file";
 import { money, shortDate } from "@/lib/format";
-import { loanTotal } from "@/lib/stats";
+import { conditionFields, conditionPhotos, isForSale } from "@/lib/photos";
 import {
   CONDITION_LABELS,
   CONDITIONS,
-  PLAY_STATUSES,
-  STATUS_LABELS,
+  COPY_KIND_LABELS,
+  COPY_KINDS,
   type Condition,
+  type CopyKind,
   type Game,
-  type PlayStatus,
 } from "@/lib/types";
-
-function FieldSelect({
-  id,
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 export function GamePanel({
   game,
@@ -61,20 +30,17 @@ export function GamePanel({
   emptyHint,
   readOnly = false,
   hideChrome = false,
+  publicView = false,
 }: {
   game: Game | null;
   onClose: () => void;
   emptyHint: string;
   readOnly?: boolean;
   hideChrome?: boolean;
+  publicView?: boolean;
 }) {
-  const { library, updateGame, deleteGame, addLoan, updateLoan, removeLoan } =
-    useLibrary();
+  const { library, updateGame, deleteGame } = useLibrary();
   const currency = library.profile.currency;
-  const [person, setPerson] = useState("");
-  const [amount, setAmount] = useState("");
-  const [loanDate, setLoanDate] = useState("");
-  const [loanNote, setLoanNote] = useState("");
 
   if (!game) {
     return (
@@ -84,311 +50,269 @@ export function GamePanel({
     );
   }
 
-  const selected = game;
-  const recovered = loanTotal(selected) + (selected.soldPrice ?? 0);
-  const net = selected.purchasePrice - recovered;
-
-  async function onPhoto(
-    field: "coverImage" | "discPhoto",
-    file: File | undefined,
-  ) {
-    if (!file) return;
-    const data = await fileToDataUrl(file);
-    updateGame(selected.id, { [field]: data });
-  }
-
-  function submitLoan(event: React.FormEvent) {
-    event.preventDefault();
-    if (!person.trim()) return;
-    addLoan(selected.id, {
-      person: person.trim(),
-      amount: Number(amount) || 0,
-      date: loanDate || new Date().toISOString().slice(0, 10),
-      note: loanNote.trim(),
-      returned: false,
-    });
-    if (selected.status !== "sold") {
-      updateGame(selected.id, { status: "lent_out" });
-    }
-    setPerson("");
-    setAmount("");
-    setLoanDate("");
-    setLoanNote("");
-  }
+  const gameId = game.id;
+  const listed = isForSale(game);
+  const sold = game.status === "sold";
+  const extras = conditionPhotos(game);
+  const copyKind = game.copyKind === "digital" ? "digital" : "disc";
 
   return (
-    <aside className={hideChrome ? "" : "rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl"}>
+    <aside className={hideChrome ? "min-w-0" : "rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl"}>
       {!hideChrome && (
-        <>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-                PS5 copy
-              </p>
-              <h2 className="mt-1 text-2xl font-medium leading-tight">{game.title}</h2>
-            </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              Close
-            </Button>
-          </div>
-          <div className="mt-5 flex items-center gap-4">
-            <DiscFace game={game} size={88} />
-            <div className="space-y-2 text-sm">
-              <Badge className="bg-white/10 text-white">
-                {STATUS_LABELS[game.status]}
-              </Badge>
-              <p className="text-muted-foreground">
-                {CONDITION_LABELS[game.condition]} · bought {shortDate(game.purchaseDate)}
-              </p>
-              <p>
-                Paid {money(game.purchasePrice, currency)}
-                {game.askingPrice != null && game.status === "for_sale"
-                  ? ` · asking ${money(game.askingPrice, currency)}`
-                  : null}
-                {game.soldPrice != null ? ` · sold ${money(game.soldPrice, currency)}` : null}
-              </p>
-            </div>
-          </div>
-        </>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h2 className="text-2xl font-medium leading-tight">{game.title}</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       )}
 
-      {hideChrome && (
-        <div className="mb-5 flex flex-wrap items-center gap-2 text-sm text-white/55">
-          <Badge className="bg-white/10 text-white">
-            {STATUS_LABELS[game.status]}
-          </Badge>
-          <span>
-            {CONDITION_LABELS[game.condition]} · bought {shortDate(game.purchaseDate)}
-          </span>
-        </div>
+      <div className="flex flex-wrap items-center gap-2 text-sm text-white/55">
+        <Badge className={listed ? "bg-amber-400 text-black" : "bg-white/10 text-white"}>
+          {sold ? "Sold" : listed ? "For sale" : "On the shelf"}
+        </Badge>
+        <span>{CONDITION_LABELS[game.condition]}</span>
+        <span>· {COPY_KIND_LABELS[copyKind]}</span>
+        {!publicView && game.purchaseDate ? (
+          <span>· bought {shortDate(game.purchaseDate)}</span>
+        ) : null}
+      </div>
+
+      <div className="mt-4">
+        <p className="mb-1 text-xs font-medium text-white/50">Your rating</p>
+        <RatingStars
+          value={game.rating}
+          readOnly={readOnly}
+          onChange={readOnly ? undefined : (value) => updateGame(gameId, { rating: value })}
+        />
+      </div>
+
+      {!publicView && (
+        <section className="mt-5">
+          <Label htmlFor={`notes-${gameId}`}>Notes</Label>
+          <p className="mt-1 text-xs text-white/45">
+            Private reminder for you — steelbook, missing insert, pickup in Noida.
+            Friends never see this.
+          </p>
+          {readOnly ? (
+            <p className="mt-1.5 text-sm text-white/70">{game.notes || "No notes."}</p>
+          ) : (
+            <Textarea
+              id={`notes-${gameId}`}
+              className="mt-1.5 min-h-20"
+              value={game.notes}
+              placeholder="Anything you’ll want later about this copy"
+              onChange={(event) => updateGame(gameId, { notes: event.target.value })}
+            />
+          )}
+        </section>
+      )}
+
+      {publicView && listed && game.askingPrice != null && (
+        <p className="mt-4 text-2xl font-medium">
+          {money(game.askingPrice, currency)}
+          <span className="ml-2 text-sm font-normal text-white/50">asking</span>
+        </p>
+      )}
+
+      {!readOnly && (
+        <section className="mt-5 space-y-3 rounded-xl border border-amber-400/30 bg-amber-400/5 p-4">
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>
+              <span className="block font-medium">For sale</span>
+              <span className="block text-xs text-white/50">
+                Shows on your public link with asking price and condition.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              className="size-4 shrink-0"
+              checked={listed}
+              disabled={sold}
+              onChange={(event) => {
+                if (event.target.checked) {
+                  updateGame(gameId, {
+                    status: "for_sale",
+                    askingPrice: game.askingPrice ?? game.purchasePrice ?? 0,
+                  });
+                } else {
+                  updateGame(gameId, { status: "on_shelf", askingPrice: null });
+                }
+              }}
+            />
+          </label>
+          {listed && !sold && (
+            <div className="grid gap-1.5">
+              <Label htmlFor={`ask-${gameId}`}>Asking price</Label>
+              <Input
+                id={`ask-${gameId}`}
+                type="number"
+                min="0"
+                step="1"
+                value={game.askingPrice ?? ""}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  updateGame(gameId, {
+                    askingPrice: next === "" ? 0 : Number(next),
+                    status: "for_sale",
+                  });
+                }}
+              />
+            </div>
+          )}
+        </section>
+      )}
+
+      {!readOnly && (
+        <section className="mt-3 space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>
+              <span className="block font-medium">Sold</span>
+              <span className="block text-xs text-white/50">Hides this copy from the public link.</span>
+            </span>
+            <input
+              type="checkbox"
+              className="size-4 shrink-0"
+              checked={sold}
+              onChange={(event) => {
+                if (event.target.checked) {
+                  updateGame(gameId, {
+                    status: "sold",
+                    soldPrice: game.soldPrice ?? game.askingPrice ?? game.purchasePrice ?? 0,
+                    askingPrice: null,
+                  });
+                } else {
+                  updateGame(gameId, { status: "on_shelf", soldPrice: null });
+                }
+              }}
+            />
+          </label>
+          {sold && (
+            <div className="grid gap-1.5">
+              <Label htmlFor={`sold-${gameId}`}>Sold for</Label>
+              <Input
+                id={`sold-${gameId}`}
+                type="number"
+                min="0"
+                step="1"
+                value={game.soldPrice ?? ""}
+                onChange={(event) =>
+                  updateGame(gameId, {
+                    soldPrice: event.target.value === "" ? null : Number(event.target.value),
+                    status: "sold",
+                  })
+                }
+              />
+            </div>
+          )}
+        </section>
       )}
 
       {!readOnly && (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <FieldSelect
-            id="status"
-            label="Play / sale status"
-            value={game.status}
-            onChange={(value) => updateGame(game.id, { status: value as PlayStatus })}
-            options={PLAY_STATUSES.map((status) => ({
-              value: status,
-              label: STATUS_LABELS[status],
+            id={`cond-${gameId}`}
+            label="Condition"
+            value={game.condition}
+            onChange={(value) => updateGame(gameId, { condition: value as Condition })}
+            options={CONDITIONS.map((item) => ({
+              value: item,
+              label: CONDITION_LABELS[item],
             }))}
           />
           <FieldSelect
-            id="condition"
-            label="Condition"
-            value={game.condition}
-            onChange={(value) => updateGame(game.id, { condition: value as Condition })}
-            options={CONDITIONS.map((condition) => ({
-              value: condition,
-              label: CONDITION_LABELS[condition],
+            id={`kind-${gameId}`}
+            label="Copy"
+            value={copyKind}
+            onChange={(value) => updateGame(gameId, { copyKind: value as CopyKind })}
+            options={COPY_KINDS.map((item) => ({
+              value: item,
+              label: COPY_KIND_LABELS[item],
             }))}
           />
         </div>
       )}
 
-      <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-        <Stat label="Paid" value={money(game.purchasePrice, currency)} />
-        <Stat label="From loans" value={money(loanTotal(game), currency)} />
-        <Stat label="Still in it" value={money(net, currency)} />
-      </div>
-
-      {game.notes && (
-        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{game.notes}</p>
-      )}
-
-      {!readOnly && (
-        <div className="mt-4">
-          <Label htmlFor={`notes-${game.id}`}>Notes</Label>
-          <Textarea
-            id={`notes-${game.id}`}
-            className="mt-1.5 min-h-20"
-            value={game.notes}
-            onChange={(event) => updateGame(game.id, { notes: event.target.value })}
-          />
+      {!publicView && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor={`paid-${gameId}`}>What you paid</Label>
+            <Input
+              id={`paid-${gameId}`}
+              type="number"
+              min="0"
+              step="1"
+              value={game.purchasePrice || ""}
+              disabled={readOnly}
+              onChange={(event) =>
+                updateGame(gameId, { purchasePrice: Number(event.target.value) || 0 })
+              }
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor={`bought-${gameId}`}>Purchased</Label>
+            <Input
+              id={`bought-${gameId}`}
+              type="date"
+              value={game.purchaseDate}
+              disabled={readOnly}
+              onChange={(event) => updateGame(gameId, { purchaseDate: event.target.value })}
+            />
+          </div>
         </div>
       )}
 
-      <section className="mt-6">
-        <h3 className="text-xs uppercase tracking-[0.18em] text-sky-300">
-          Loans & trades
-        </h3>
-        {game.loans.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            Nobody has borrowed this copy yet.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {game.loans.map((loan) => (
-              <li
-                key={loan.id}
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium">{loan.person}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {shortDate(loan.date)} · {money(loan.amount, currency)} ·{" "}
-                      {loan.returned ? "returned" : "still out"}
-                    </p>
-                    {loan.note && (
-                      <p className="mt-1 text-xs text-muted-foreground">{loan.note}</p>
-                    )}
-                  </div>
-                  {!readOnly && (
-                    <div className="flex gap-1">
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        onClick={() =>
-                          updateLoan(game.id, loan.id, { returned: !loan.returned })
-                        }
-                      >
-                        {loan.returned ? "Out" : "Back"}
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="ghost"
-                        onClick={() => removeLoan(game.id, loan.id)}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+      <section className="mt-6 min-w-0">
+        <h3 className="text-xs font-medium text-sky-300">Box art</h3>
+        {game.coverImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={artSrc(game.coverImage)}
+            alt={`${game.title} box art`}
+            className="mt-3 h-40 w-28 rounded-md object-cover ring-1 ring-white/10"
+          />
         )}
-
         {!readOnly && (
-          <form onSubmit={submitLoan} className="mt-3 grid gap-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Input
-                placeholder="Who borrowed it"
-                value={person}
-                onChange={(event) => setPerson(event.target.value)}
-              />
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="What they paid"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-              />
-            </div>
-            <Input
-              type="date"
-              value={loanDate}
-              onChange={(event) => setLoanDate(event.target.value)}
-            />
-            <Input
-              placeholder="Note — weekend loan, trade, etc."
-              value={loanNote}
-              onChange={(event) => setLoanNote(event.target.value)}
-            />
-            <Button type="submit" size="sm">
-              Log a loan
-            </Button>
-          </form>
-        )}
-      </section>
-
-      <section className="mt-6">
-        <h3 className="text-xs uppercase tracking-[0.18em] text-sky-300">
-          Asking / sold
-        </h3>
-        {readOnly ? (
-          <p className="mt-2 text-sm">
-            {game.status === "for_sale" && game.askingPrice != null
-              ? `Asking ${money(game.askingPrice, currency)}`
-              : game.status === "sold" && game.soldPrice != null
-                ? `Sold for ${money(game.soldPrice, currency)}`
-                : "Not listed."}
-          </p>
-        ) : (
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div>
-              <Label htmlFor={`ask-${game.id}`}>Asking price</Label>
-              <Input
-                id={`ask-${game.id}`}
-                className="mt-1.5"
-                type="number"
-                min="0"
-                step="0.01"
-                value={game.askingPrice ?? ""}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  updateGame(game.id, {
-                    askingPrice: next === "" ? null : Number(next),
-                    status: next === "" ? game.status : "for_sale",
-                  });
-                }}
-              />
-            </div>
-            <div>
-              <Label htmlFor={`sold-${game.id}`}>Sold for</Label>
-              <Input
-                id={`sold-${game.id}`}
-                className="mt-1.5"
-                type="number"
-                min="0"
-                step="0.01"
-                value={game.soldPrice ?? ""}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  updateGame(game.id, {
-                    soldPrice: next === "" ? null : Number(next),
-                    status: next === "" ? game.status : "sold",
-                  });
-                }}
-              />
-            </div>
-          </div>
-        )}
-      </section>
-
-      <section className="mt-6">
-        <h3 className="text-xs uppercase tracking-[0.18em] text-sky-300">
-          Artwork
-        </h3>
-        {!readOnly && (
-          <div className="mt-3">
+          <div className="mt-3 min-w-0 space-y-2">
             <ArtworkPicker
               title={game.title}
               current={game.coverImage}
-              onPick={(url) => updateGame(game.id, { coverImage: url })}
+              onPick={(url) => updateGame(gameId, { coverImage: url })}
+            />
+            <NativeFileButton
+              label="Upload box art"
+              onFiles={async (files) => {
+                const file = files[0];
+                if (file) updateGame(gameId, { coverImage: await fileToDataUrl(file) });
+              }}
             />
           </div>
         )}
-        <div className="mt-3 grid gap-3">
-          <PhotoSlot
-            label="Box art"
-            src={game.coverImage}
-            readOnly={readOnly}
-            onFile={(file) => onPhoto("coverImage", file)}
-            onUrl={(url) => updateGame(game.id, { coverImage: url })}
-            onClear={() => updateGame(game.id, { coverImage: null })}
-          />
-          <PhotoSlot
-            label="Disc photo"
-            src={game.discPhoto}
-            readOnly={readOnly}
-            onFile={(file) => onPhoto("discPhoto", file)}
-            onUrl={(url) => updateGame(game.id, { discPhoto: url })}
-            onClear={() => updateGame(game.id, { discPhoto: null })}
-          />
-        </div>
       </section>
+
+      {copyKind === "disc" && (
+        <section className="mt-6 min-w-0">
+          <h3 className="text-xs font-medium text-sky-300">Condition photos</h3>
+          <p className="mt-1 text-xs text-white/45">
+            Optional shots of this copy. Separate from box art and the disc face.
+          </p>
+          <div className="mt-3">
+            <PhotoGallery
+              photos={extras}
+              title={game.title}
+              readOnly={readOnly}
+              onChange={readOnly ? undefined : (next) => updateGame(gameId, conditionFields(next))}
+            />
+          </div>
+        </section>
+      )}
 
       {!readOnly && (
         <Button
           className="mt-6 w-full"
           variant="destructive"
           onClick={() => {
-            deleteGame(game.id);
+            deleteGame(gameId);
             onClose();
           }}
         >
@@ -396,80 +320,5 @@ export function GamePanel({
         </Button>
       )}
     </aside>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-white/5 px-2 py-3">
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-1 font-medium">{value}</p>
-    </div>
-  );
-}
-
-function PhotoSlot({
-  label,
-  src,
-  readOnly,
-  onFile,
-  onUrl,
-  onClear,
-}: {
-  label: string;
-  src: string | null;
-  readOnly: boolean;
-  onFile: (file: File | undefined) => void;
-  onUrl: (url: string) => void;
-  onClear: () => void;
-}) {
-  const [url, setUrl] = useState("");
-  return (
-    <div className="rounded-xl border border-white/10 p-3">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      {src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={artSrc(src)}
-          alt={label}
-          className="mt-2 h-40 w-full rounded-lg object-cover"
-        />
-      ) : (
-        <div className="mt-2 flex h-24 items-center justify-center rounded-lg border border-dashed border-white/15 text-xs text-muted-foreground">
-          Upload a photo or paste a link
-        </div>
-      )}
-      {!readOnly && (
-        <div className="mt-2 grid gap-2">
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={(event) => onFile(event.target.files?.[0])}
-          />
-          <div className="flex gap-2">
-            <Input
-              placeholder="https:// image link"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-            />
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                if (url.trim()) onUrl(url.trim());
-              }}
-            >
-              Use
-            </Button>
-          </div>
-          {src && (
-            <Button type="button" size="xs" variant="ghost" onClick={onClear}>
-              Clear art
-            </Button>
-          )}
-        </div>
-      )}
-    </div>
   );
 }

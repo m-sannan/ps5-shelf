@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import { LibraryProvider } from "@/components/library-provider";
-import { ProfileGate } from "@/components/profile-gate";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -15,13 +14,11 @@ export const metadata: Metadata = {
     "A PS5-style shelf of physical game cases, with loans, sale prices, and disc photos.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`dark ${outfit.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
-        <LibraryProvider>
-          <ProfileGate>{children}</ProfileGate>
-        </LibraryProvider>
+        <LibraryProvider>{children}</LibraryProvider>
       </body>
     </html>
   );

@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArtworkPicker } from "@/components/artwork-picker";
+import { FieldSelect } from "@/components/field-select";
+import { NativeFileButton, PhotoGallery } from "@/components/photo-gallery";
+import { RatingStars } from "@/components/rating-stars";
 import { useLibrary } from "@/components/library-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
   SheetContent,
@@ -13,55 +17,100 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
+import { artSrc } from "@/lib/art-src";
 import { fileToDataUrl } from "@/lib/file";
+import { conditionFields } from "@/lib/photos";
+import { POPULAR_PS5 } from "@/lib/popular";
 import {
   CONDITION_LABELS,
   CONDITIONS,
-  PLAY_STATUSES,
-  STATUS_LABELS,
+  COPY_KIND_LABELS,
+  COPY_KINDS,
   type Condition,
-  type PlayStatus,
+  type CopyKind,
 } from "@/lib/types";
 
-const COLORS = [
-  "#3b82f6",
-  "#dc2626",
-  "#7c3aed",
-  "#059669",
-  "#eab308",
-  "#ec4899",
-  "#0ea5e9",
-  "#b45309",
-];
+type PopularHit = { title: string; cover: string | null };
 
 export function AddGameSheet() {
-  const { addGame } = useLibrary();
+  const { addGame, library } = useLibrary();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [purchasePrice, setPurchasePrice] = useState("");
-  const [purchaseDate, setPurchaseDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
-  const [status, setStatus] = useState<PlayStatus>("on_shelf");
-  const [condition, setCondition] = useState<Condition>("near_mint");
-  const [notes, setNotes] = useState("");
-  const [coverColor, setCoverColor] = useState(COLORS[0]);
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [discPhoto, setDiscPhoto] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [listForSale, setListForSale] = useState(false);
+  const [askingPrice, setAskingPrice] = useState("");
+  const [condition, setCondition] = useState<Condition>("near_mint");
+  const [copyKind, setCopyKind] = useState<CopyKind>("disc");
+  const [rating, setRating] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [popular, setPopular] = useState<PopularHit[]>(
+    POPULAR_PS5.map((item) => ({ title: item, cover: null })),
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    Promise.all(
+      POPULAR_PS5.map(async (item) => {
+        try {
+          const response = await fetch(`/api/covers?q=${encodeURIComponent(item)}`);
+          const data = (await response.json()) as { covers?: { url: string }[] };
+          return { title: item, cover: data.covers?.[0]?.url ?? null };
+        } catch {
+          return { title: item, cover: null };
+        }
+      }),
+    ).then((hits) => {
+      if (!cancelled) setPopular(hits);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   function reset() {
     setTitle("");
-    setPurchasePrice("");
-    setPurchaseDate(new Date().toISOString().slice(0, 10));
-    setStatus("on_shelf");
-    setCondition("near_mint");
-    setNotes("");
-    setCoverColor(COLORS[0]);
     setCoverImage(null);
+    setPhotos([]);
     setDiscPhoto(null);
+    setNotes("");
+    setPurchasePrice("");
+    setListForSale(false);
+    setAskingPrice("");
+    setCondition("near_mint");
+    setCopyKind("disc");
+    setRating(null);
     setError("");
+  }
+
+  function pickPopular(hit: PopularHit) {
+    setTitle(hit.title);
+    if (hit.cover) setCoverImage(hit.cover);
+    setError("");
+  }
+
+  function save(titleValue: string, art: string | null) {
+    addGame({
+      title: titleValue,
+      purchasePrice: Number(purchasePrice) || 0,
+      purchaseDate: new Date().toISOString().slice(0, 10),
+      askingPrice: listForSale ? Number(askingPrice) || 0 : null,
+      soldPrice: null,
+      status: listForSale ? "for_sale" : "on_shelf",
+      condition,
+      copyKind,
+      rating,
+      notes: notes.trim(),
+      coverColor: "#3b82f6",
+      coverImage: art,
+      discPhoto,
+      casePhoto: null,
+      ...conditionFields(photos),
+    });
   }
 
   async function onSubmit(event: React.FormEvent) {
@@ -80,22 +129,12 @@ export function AddGameSheet() {
         art = null;
       }
     }
-    addGame({
-      title: title.trim(),
-      purchasePrice: Number(purchasePrice) || 0,
-      purchaseDate,
-      askingPrice: null,
-      soldPrice: null,
-      status,
-      condition,
-      notes: notes.trim(),
-      coverColor,
-      coverImage: art,
-      discPhoto,
-    });
+    save(title.trim(), art);
     reset();
     setOpen(false);
   }
+
+  const owned = new Set(library.games.map((game) => game.title.toLowerCase()));
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -105,156 +144,208 @@ export function AddGameSheet() {
       </Button>
       <SheetContent
         side="right"
-        className="flex h-dvh max-h-dvh w-full max-w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
+        className="h-dvh w-full max-w-full gap-0 overflow-hidden p-0 sm:inset-y-5 sm:right-5 sm:left-auto sm:h-auto sm:w-[min(32rem,calc(100vw-2.5rem))] sm:max-w-none sm:rounded-[22px] sm:border sm:border-white/10 data-[side=right]:w-full sm:data-[side=right]:w-[min(32rem,calc(100vw-2.5rem))]"
       >
-        <SheetHeader className="shrink-0 pr-12">
-          <SheetTitle>Add a PS5 game</SheetTitle>
-          <SheetDescription>
-            Put a copy on the shelf with what you paid and how far you got.
-          </SheetDescription>
-        </SheetHeader>
-        <form
-          onSubmit={onSubmit}
-          className="grid min-h-0 min-w-0 flex-1 gap-4 overflow-y-auto px-4 pb-8"
-        >
-          <div className="grid gap-1.5">
-            <Label htmlFor="title">Title</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Astro Bot"
-            />
-          </div>
-          <ArtworkPicker title={title} current={coverImage} onPick={setCoverImage} />
-          {coverImage && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={
-                coverImage.startsWith("http")
-                  ? `/api/art?url=${encodeURIComponent(coverImage)}`
-                  : coverImage
-              }
-              alt="Selected box art"
-              className="h-40 w-28 max-w-full rounded-md object-cover"
-            />
-          )}
-          <div className="grid gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="price">What you paid (₹)</Label>
-              <Input
-                id="price"
-                type="number"
-                min="0"
-                step="1"
-                value={purchasePrice}
-                onChange={(event) => setPurchasePrice(event.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="bought">Purchase date</Label>
-              <Input
-                id="bought"
-                type="date"
-                value={purchaseDate}
-                onChange={(event) => setPurchaseDate(event.target.value)}
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="new-status">Status</Label>
-              <select
-                id="new-status"
-                className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
-                value={status}
-                onChange={(event) => setStatus(event.target.value as PlayStatus)}
-              >
-                {PLAY_STATUSES.map((item) => (
-                  <option key={item} value={item}>
-                    {STATUS_LABELS[item]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="new-condition">Condition</Label>
-              <select
-                id="new-condition"
-                className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm dark:bg-input/30"
-                value={condition}
-                onChange={(event) =>
-                  setCondition(event.target.value as Condition)
-                }
-              >
-                {CONDITIONS.map((item) => (
-                  <option key={item} value={item}>
-                    {CONDITION_LABELS[item]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="grid gap-1.5">
-            <Label>Label color</Label>
-            <div className="flex flex-wrap gap-2">
-              {COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setCoverColor(color)}
-                  className="size-7 rounded-full border"
-                  style={{
-                    background: color,
-                    outline:
-                      coverColor === color ? "2px solid white" : undefined,
-                  }}
-                  aria-label={`Color ${color}`}
+        <form onSubmit={onSubmit} className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+          <SheetHeader className="shrink-0 space-y-1 pr-12">
+            <SheetTitle>Add a PS5 game</SheetTitle>
+            <SheetDescription>
+              Pick a title, find box art, then add it. Photos of your copy are optional.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-4">
+            <div className="min-w-0 space-y-5">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-white/50">Popular right now</p>
+                <div className="mt-2 flex min-w-0 gap-2.5 overflow-x-auto pb-1">
+                  {popular.map((hit) => {
+                    const have = owned.has(hit.title.toLowerCase());
+                    const selected = title === hit.title;
+                    return (
+                      <button
+                        key={hit.title}
+                        type="button"
+                        onClick={() => pickPopular(hit)}
+                        className={`w-20 shrink-0 overflow-hidden rounded-lg text-left ring-1 transition sm:w-24 ${
+                          selected ? "ring-white" : "ring-white/12 hover:ring-white/40"
+                        } ${have ? "opacity-50" : ""}`}
+                        title={have ? `Already on the shelf: ${hit.title}` : hit.title}
+                      >
+                        <span className="block aspect-[3/4] bg-[#0e0e10]">
+                          {hit.cover ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={artSrc(hit.cover)} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="flex h-full items-end p-1.5 text-[10px] leading-tight text-white/80">
+                              {hit.title}
+                            </span>
+                          )}
+                        </span>
+                        <span className="block truncate px-1 py-1 text-[10px] leading-tight text-white/70">
+                          {hit.title}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid min-w-0 gap-1.5">
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="Astro Bot"
                 />
-              ))}
+              </div>
+
+              <section className="min-w-0 space-y-3">
+                <h3 className="text-xs font-medium text-sky-300">Box art</h3>
+                {coverImage && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={artSrc(coverImage)}
+                    alt="Selected box art"
+                    className="h-40 w-28 max-w-full rounded-md object-cover"
+                  />
+                )}
+                <ArtworkPicker title={title} current={coverImage} onPick={setCoverImage} />
+                <NativeFileButton
+                  label="Upload box art"
+                  onFiles={async (files) => {
+                    const file = files[0];
+                    if (file) setCoverImage(await fileToDataUrl(file));
+                  }}
+                />
+              </section>
+
+              {copyKind === "disc" && (
+                <section className="min-w-0 space-y-2">
+                  <h3 className="text-xs font-medium text-sky-300">Disc photo</h3>
+                  <p className="text-xs text-white/45">
+                    The circular disc on the shelf. Separate from box art.
+                  </p>
+                  {discPhoto && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={artSrc(discPhoto)}
+                      alt="Disc"
+                      className="size-28 rounded-full object-cover"
+                    />
+                  )}
+                  <NativeFileButton
+                    label={discPhoto ? "Replace disc photo" : "Upload disc photo"}
+                    onFiles={async (files) => {
+                      const file = files[0];
+                      if (file) setDiscPhoto(await fileToDataUrl(file));
+                    }}
+                  />
+                </section>
+              )}
+
+              {copyKind === "disc" && (
+                <section className="min-w-0 space-y-2">
+                  <h3 className="text-xs font-medium text-sky-300">Condition photos</h3>
+                  <p className="text-xs text-white/45">
+                    Optional. Up to 5 shots of this copy — not box art, not the disc face.
+                  </p>
+                  <PhotoGallery photos={photos} title={title} onChange={setPhotos} />
+                </section>
+              )}
+
+              <div className="min-w-0 space-y-1.5">
+                <p className="text-sm font-medium">Your rating</p>
+                <RatingStars value={rating} onChange={setRating} />
+              </div>
+
+              <div className="min-w-0 space-y-1.5">
+                <Label htmlFor="notes">Notes</Label>
+                <p className="text-xs text-white/45">
+                  Private reminder for you — steelbook, missing insert, pickup notes.
+                  Friends never see this.
+                </p>
+                <Textarea
+                  id="notes"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Anything you’ll want later about this copy"
+                />
+              </div>
+
+              <div className="grid min-w-0 gap-1.5">
+                <Label htmlFor="price">What you paid (optional)</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={purchasePrice}
+                  onChange={(event) => setPurchasePrice(event.target.value)}
+                />
+              </div>
+
+              <FieldSelect
+                id="new-kind"
+                label="Copy"
+                value={copyKind}
+                onChange={(value) => setCopyKind(value as CopyKind)}
+                options={COPY_KINDS.map((item) => ({
+                  value: item,
+                  label: COPY_KIND_LABELS[item],
+                }))}
+              />
+              <FieldSelect
+                id="new-condition"
+                label="Condition"
+                value={condition}
+                onChange={(value) => setCondition(value as Condition)}
+                options={CONDITIONS.map((item) => ({
+                  value: item,
+                  label: CONDITION_LABELS[item],
+                }))}
+              />
+
+              <section className="min-w-0 space-y-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-4">
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span>
+                    <span className="block font-medium">List for sale</span>
+                    <span className="block text-xs text-white/50">
+                      Friends will see the asking price on your public link.
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="size-4 shrink-0"
+                    checked={listForSale}
+                    onChange={(event) => setListForSale(event.target.checked)}
+                  />
+                </label>
+                {listForSale && (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="ask">Asking price</Label>
+                    <Input
+                      id="ask"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={askingPrice}
+                      onChange={(event) => setAskingPrice(event.target.value)}
+                    />
+                  </div>
+                )}
+              </section>
+
+              {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
           </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="cover">Box art photo</Label>
-            <Input
-              id="cover"
-              type="file"
-              accept="image/*"
-              onChange={async (event) => {
-                const file = event.target.files?.[0];
-                if (file) setCoverImage(await fileToDataUrl(file));
-              }}
-            />
-            <Input
-              placeholder="Or paste an image link"
-              onBlur={(event) => {
-                if (event.target.value.trim()) {
-                  setCoverImage(event.target.value.trim());
-                }
-              }}
-            />
+
+          <div className="shrink-0 border-t border-white/10 p-4">
+            <Button type="submit" className="w-full">
+              Add to library
+            </Button>
           </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="disc">Real disc photo</Label>
-            <Input
-              id="disc"
-              type="file"
-              accept="image/*"
-              onChange={async (event) => {
-                const file = event.target.files?.[0];
-                if (file) setDiscPhoto(await fileToDataUrl(file));
-              }}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Steelbook, insert missing, finished but still replaying…"
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit">Put it on the rail</Button>
         </form>
       </SheetContent>
     </Sheet>

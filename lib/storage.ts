@@ -1,20 +1,25 @@
 import { SEED_LIBRARY } from "./seed";
 import { uid } from "./format";
+import type { CloudSession } from "./cloud/types";
 import type { Account, AppStore, Library } from "./types";
 
-const KEY = "crate-library-v4";
+const LEGACY_KEY = "crate-library-v4";
+const KEY = "crate-shelf-v5";
 
-let cached: AppStore | null = null;
+export type ShelfState = {
+  name: string;
+  pin: string | null;
+  avatarColor: string;
+  unlocked: boolean;
+  library: Library;
+  cloud: CloudSession | null;
+};
+
+let cached: ShelfState | null = null;
 const listeners = new Set<() => void>();
 
-function demoAccount(): Account {
-  return {
-    id: "demo-sannan",
-    name: "Sannan",
-    pin: null,
-    avatarColor: "#3b82f6",
-    library: structuredClone(SEED_LIBRARY),
-  };
+function demoLibrary(): Library {
+  return structuredClone(SEED_LIBRARY);
 }
 
 export function emptyLibrary(name: string): Library {
@@ -30,46 +35,67 @@ export function emptyLibrary(name: string): Library {
   };
 }
 
-function seedStore(): AppStore {
+function lockedState(): ShelfState {
   return {
-    accounts: [demoAccount()],
-    currentAccountId: null,
+    name: "",
+    pin: null,
+    avatarColor: "#3b82f6",
+    unlocked: false,
+    library: emptyLibrary(""),
+    cloud: null,
   };
 }
 
-function readFromDisk(): AppStore {
+const SERVER_STATE: ShelfState = lockedState();
+
+function avatarFor(name: string) {
+  const colors = ["#3b82f6", "#22d3ee", "#a855f7", "#f43f5e"];
+  const index = Math.abs([...name].reduce((sum, ch) => sum + ch.charCodeAt(0), 0));
+  return colors[index % colors.length];
+}
+
+export type LegacyAccount = Account;
+
+export function readLegacyAccounts(): Account[] {
+  if (typeof window === "undefined") return [];
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return seedStore();
+    const raw = window.localStorage.getItem(LEGACY_KEY);
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as AppStore;
-    if (!Array.isArray(parsed.accounts)) return seedStore();
-    return parsed;
+    if (!Array.isArray(parsed.accounts)) return [];
+    return parsed.accounts;
   } catch {
-    return seedStore();
+    return [];
   }
 }
 
-export function getStoreSnapshot(): AppStore {
-  if (typeof window === "undefined") return seedStore();
+function readFromDisk(): ShelfState {
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) return lockedState();
+    const parsed = JSON.parse(raw) as ShelfState;
+    if (!parsed || typeof parsed !== "object") return lockedState();
+    return {
+      name: parsed.name ?? parsed.library?.profile?.name ?? "",
+      pin: parsed.pin ?? null,
+      avatarColor: parsed.avatarColor ?? "#3b82f6",
+      unlocked: Boolean(parsed.unlocked && (parsed.cloud || parsed.library?.games)),
+      library: parsed.library ?? emptyLibrary(parsed.name ?? ""),
+      cloud: parsed.cloud ?? null,
+    };
+  } catch {
+    return lockedState();
+  }
+}
+
+export function getStoreSnapshot(): ShelfState {
+  if (typeof window === "undefined") return SERVER_STATE;
   if (!cached) cached = readFromDisk();
   return cached;
 }
 
-const SERVER_STORE: AppStore = {
-  accounts: [
-    {
-      id: "demo-sannan",
-      name: "Sannan",
-      pin: null,
-      avatarColor: "#3b82f6",
-      library: SEED_LIBRARY,
-    },
-  ],
-  currentAccountId: null,
-};
-
-export function getServerStoreSnapshot(): AppStore {
-  return SERVER_STORE;
+export function getServerStoreSnapshot(): ShelfState {
+  return SERVER_STATE;
 }
 
 export function subscribeStore(listener: () => void) {
@@ -77,37 +103,77 @@ export function subscribeStore(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-export function writeStore(store: AppStore) {
-  cached = store;
+export function writeState(state: ShelfState) {
+  cached = state;
   if (typeof window !== "undefined") {
-    window.localStorage.setItem(KEY, JSON.stringify(store));
+    window.localStorage.setItem(KEY, JSON.stringify(state));
   }
   listeners.forEach((listener) => listener());
 }
 
-export function currentAccount(store: AppStore): Account | null {
-  return store.accounts.find((account) => account.id === store.currentAccountId) ?? null;
+export function writeLibrary(library: Library) {
+  const state = getStoreSnapshot();
+  if (!state.unlocked) return;
+  writeState({ ...state, library, name: library.profile.name || state.name });
 }
 
-export function writeLibrary(library: Library) {
-  const store = getStoreSnapshot();
-  if (!store.currentAccountId) return;
-  writeStore({
-    ...store,
-    accounts: store.accounts.map((account) =>
-      account.id === store.currentAccountId ? { ...account, library } : account,
-    ),
+export function currentLibrary(state: ShelfState): Library {
+  return state.library;
+}
+
+export function lockShelf() {
+  const state = getStoreSnapshot();
+  writeState({ ...state, unlocked: false });
+}
+
+export function unlockShelf() {
+  const state = getStoreSnapshot();
+  if (!state.cloud && !state.library.profile.name && state.library.games.length === 0) {
+    return;
+  }
+  writeState({ ...state, unlocked: true });
+}
+
+export function hasSavedShelf(state: ShelfState = getStoreSnapshot()) {
+  return Boolean(state.cloud || state.library.games.length > 0 || state.name);
+}
+
+export function openShelf(input: {
+  name: string;
+  library: Library;
+  cloud: CloudSession | null;
+  pin?: string | null;
+}) {
+  const name = input.name.trim() || input.library.profile.name || "Shelf";
+  writeState({
+    name,
+    pin: input.pin ?? getStoreSnapshot().pin,
+    avatarColor: avatarFor(name),
+    unlocked: true,
+    library: {
+      ...input.library,
+      profile: { ...input.library.profile, name: input.library.profile.name || name },
+    },
+    cloud: input.cloud,
   });
 }
 
-export function signIn(accountId: string) {
-  const store = getStoreSnapshot();
-  writeStore({ ...store, currentAccountId: accountId });
+export function setCloudSession(cloud: CloudSession | null) {
+  const state = getStoreSnapshot();
+  writeState({ ...state, cloud });
+}
+
+export function setShelfPin(pin: string | null) {
+  const state = getStoreSnapshot();
+  writeState({ ...state, pin: pin?.trim() ? pin.trim() : null });
+}
+
+export function signIn(_accountId?: string) {
+  unlockShelf();
 }
 
 export function signOut() {
-  const store = getStoreSnapshot();
-  writeStore({ ...store, currentAccountId: null });
+  lockShelf();
 }
 
 export function createAccount(input: {
@@ -115,39 +181,43 @@ export function createAccount(input: {
   pin: string | null;
   useSample: boolean;
 }) {
-  const store = getStoreSnapshot();
   const name = input.name.trim();
-  const account: Account = {
-    id: uid("user"),
+  openShelf({
     name,
-    pin: input.pin?.trim() ? input.pin.trim() : null,
-    avatarColor: ["#3b82f6", "#22d3ee", "#a855f7", "#f43f5e"][
-      store.accounts.length % 4
-    ],
+    pin: input.pin,
+    cloud: null,
     library: input.useSample
       ? {
-          ...structuredClone(SEED_LIBRARY),
-          profile: {
-            ...structuredClone(SEED_LIBRARY.profile),
-            name,
-          },
+          ...demoLibrary(),
+          profile: { ...demoLibrary().profile, name },
         }
       : emptyLibrary(name),
-  };
-  writeStore({
-    accounts: [...store.accounts, account],
-    currentAccountId: account.id,
   });
-  return account;
 }
 
 export function resetLibrary(): Library {
-  const next = structuredClone(SEED_LIBRARY);
-  const store = getStoreSnapshot();
-  const account = currentAccount(store);
-  if (account) {
-    next.profile = { ...next.profile, name: account.name, currency: account.library.profile.currency };
-  }
+  const state = getStoreSnapshot();
+  const next = demoLibrary();
+  next.profile = {
+    ...next.profile,
+    name: state.name || next.profile.name,
+    currency: state.library.profile.currency,
+  };
   writeLibrary(next);
   return next;
+}
+
+export function asAccount(state: ShelfState): Account | null {
+  if (!state.unlocked) return null;
+  return {
+    id: state.cloud?.shelfId ?? "local",
+    name: state.name || state.library.profile.name || "Shelf",
+    pin: state.pin,
+    avatarColor: state.avatarColor,
+    library: state.library,
+  };
+}
+
+export function uidGame() {
+  return uid("game");
 }

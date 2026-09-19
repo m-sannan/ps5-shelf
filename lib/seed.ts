@@ -12,7 +12,7 @@ function loan(
 }
 
 function game(
-  partial: Omit<Game, "platform" | "askingPrice" | "discPhoto"> & {
+  partial: Omit<Game, "platform" | "askingPrice" | "discPhoto" | "casePhoto"> & {
     askingPrice?: number | null;
   },
 ): Game {
@@ -20,6 +20,9 @@ function game(
     platform: "PS5",
     askingPrice: partial.askingPrice ?? null,
     discPhoto: null,
+    casePhoto: null,
+    copyKind: "disc" as const,
+    rating: null,
     ...partial,
   };
 }
@@ -31,6 +34,7 @@ export const SEED_LIBRARY: Library = {
     city: "",
     note: "Physical copies. Local pickup. Prices in ₹.",
     currency: "INR",
+    sharePaidPrice: false,
   },
   games: [
     game({
@@ -45,6 +49,7 @@ export const SEED_LIBRARY: Library = {
       coverColor: "#d90429",
       coverImage:
         "https://upload.wikimedia.org/wikipedia/en/a/a3/Spider-Man_Miles_Morales.jpeg",
+      rating: 4,
       loans: [
         loan("loan-mm-1", "Musa", "2026-03-18", 0, "Still with Musa", false),
       ],
@@ -107,6 +112,7 @@ export const SEED_LIBRARY: Library = {
       coverColor: "#a3a3a3",
       coverImage:
         "https://upload.wikimedia.org/wikipedia/en/8/86/The_Last_of_Us_Part_I_cover.jpg",
+      rating: 5,
       loans: [],
     }),
     game({
@@ -226,10 +232,11 @@ export const SEED_LIBRARY: Library = {
       title: "Hitman 3",
       purchasePrice: 2250,
       purchaseDate: "2025-01-01",
+      askingPrice: 1600,
       soldPrice: null,
-      status: "on_shelf",
+      status: "for_sale",
       condition: "good",
-      notes: "Bought from Discord.",
+      notes: "Bought from Discord. Listed for pickup.",
       coverColor: "#dc2626",
       coverImage:
         "https://upload.wikimedia.org/wikipedia/en/4/4b/Hitman_3_Packart.jpg",

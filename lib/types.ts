@@ -25,6 +25,9 @@ export const CURRENCIES = [
 
 export type CurrencyCode = (typeof CURRENCIES)[number]["code"];
 
+export const COPY_KINDS = ["disc", "digital"] as const;
+export type CopyKind = (typeof COPY_KINDS)[number];
+
 export type Loan = {
   id: string;
   person: string;
@@ -48,6 +51,10 @@ export type Game = {
   coverColor: string;
   coverImage: string | null;
   discPhoto: string | null;
+  casePhoto: string | null;
+  photos?: string[];
+  copyKind?: CopyKind;
+  rating?: number | null;
   loans: Loan[];
 };
 
@@ -57,6 +64,7 @@ export type Profile = {
   city: string;
   note: string;
   currency: CurrencyCode;
+  sharePaidPrice?: boolean;
 };
 
 export type Library = {
@@ -77,6 +85,9 @@ export type AppStore = {
   currentAccountId: string | null;
 };
 
+export const SHELF_STATUSES = ["on_shelf", "for_sale", "sold"] as const;
+export type ShelfStatus = (typeof SHELF_STATUSES)[number];
+
 export const STATUS_LABELS: Record<PlayStatus, string> = {
   on_shelf: "On the shelf",
   in_progress: "In progress",
@@ -85,6 +96,11 @@ export const STATUS_LABELS: Record<PlayStatus, string> = {
   lent_out: "Lent out",
   for_sale: "For sale",
   sold: "Sold",
+};
+
+export const COPY_KIND_LABELS: Record<CopyKind, string> = {
+  disc: "Physical disc",
+  digital: "Digital",
 };
 
 export const CONDITION_LABELS: Record<Condition, string> = {
