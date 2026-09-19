@@ -9,7 +9,11 @@ export function newId(prefix: string) {
 }
 
 export function newPublicId() {
-  return randomBytes(9).toString("base64url");
+  return randomBytes(8).toString("hex");
+}
+
+export function isPublicId(value: string) {
+  return /^[A-Za-z0-9_-]{6,32}$/.test(value);
 }
 
 export function newPairingCode() {

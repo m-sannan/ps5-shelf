@@ -1,5 +1,6 @@
 import type { Library } from "../types";
-import { hashSecret, newId, newPairingCode, newPublicId } from "./hash";
+import { toPublicLibrary } from "../public-view";
+import { hashSecret, isPublicId, newId, newPairingCode, newPublicId } from "./hash";
 
 export const PAIR_TTL_MS = 5 * 60 * 1000;
 
@@ -72,7 +73,10 @@ export function requireDevice(blob: CloudBlob, secret: string) {
   return { device, shelf };
 }
 
-export function createShelf(blob: CloudBlob, input: { deviceSecret: string; library: Library }) {
+export function createShelf(
+  blob: CloudBlob,
+  input: { deviceSecret: string; library: Library; publicId?: string },
+) {
   purge(blob);
   if (deviceOf(blob, input.deviceSecret)) {
     throw Object.assign(new Error("This device already belongs to a shelf."), {
@@ -80,9 +84,14 @@ export function createShelf(blob: CloudBlob, input: { deviceSecret: string; libr
     });
   }
   const createdAt = nowIso();
+  const requested = input.publicId?.trim();
+  const publicId =
+    requested && isPublicId(requested) && !blob.shelves.some((row) => row.publicId === requested)
+      ? requested
+      : newPublicId();
   const shelf: ShelfRecord = {
     id: newId("shelf"),
-    publicId: newPublicId(),
+    publicId,
     revision: 1,
     library: structuredClone(input.library),
     createdAt,
@@ -165,28 +174,11 @@ export function publicShelf(blob: CloudBlob, publicId: string) {
   purge(blob);
   const shelf = blob.shelves.find((row) => row.publicId === publicId);
   if (!shelf) return null;
-  const games = shelf.library.games
-    .filter((game) => game.status !== "sold")
-    .map((game) => ({
-      ...game,
-      status: game.status === "lent_out" ? "on_shelf" : game.status,
-      purchasePrice: 0,
-      purchaseDate: "",
-      soldPrice: null,
-      loans: [],
-      notes: "",
-    }));
+  const published = toPublicLibrary(shelf.library);
   return {
     publicId: shelf.publicId,
     updatedAt: shelf.updatedAt,
-    profile: {
-      name: shelf.library.profile.name,
-      contact: shelf.library.profile.contact,
-      city: shelf.library.profile.city,
-      note: shelf.library.profile.note,
-      currency: shelf.library.profile.currency,
-      sharePaidPrice: false,
-    },
-    games,
+    profile: published.profile,
+    games: published.games,
   };
 }

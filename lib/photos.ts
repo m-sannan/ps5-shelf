@@ -1,4 +1,4 @@
-import type { Game, PlayStatus } from "./types";
+import type { CopyKind, Game, PlayStatus } from "./types";
 
 export const MAX_CONDITION_PHOTOS = 5;
 
@@ -24,10 +24,25 @@ export function discArt(game: Pick<Game, "coverImage" | "discPhoto">) {
   return game.discPhoto || game.coverImage;
 }
 
-export function isForSale(game: Pick<Game, "status" | "askingPrice">) {
+export function isForSale(game: Pick<Game, "status" | "askingPrice" | "copyKind">) {
+  if (game.copyKind === "digital") return false;
   if (game.status === "sold") return false;
   if (game.status === "for_sale") return true;
   return game.askingPrice != null && game.askingPrice > 0;
+}
+
+export function digitalCopyPatch(status: PlayStatus): Partial<Game> {
+  return {
+    copyKind: "digital",
+    askingPrice: null,
+    soldPrice: null,
+    status: status === "sold" || status === "for_sale" ? "on_shelf" : status,
+  };
+}
+
+export function copyKindPatch(copyKind: CopyKind, status: PlayStatus): Partial<Game> {
+  if (copyKind === "digital") return digitalCopyPatch(status);
+  return { copyKind };
 }
 
 export function isPlaying(game: Pick<Game, "status">) {

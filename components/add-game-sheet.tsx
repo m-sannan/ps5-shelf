@@ -41,6 +41,8 @@ export function AddGameSheet() {
   const [discPhoto, setDiscPhoto] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState("");
+  const [borrowedFrom, setBorrowedFrom] = useState("");
   const [listForSale, setListForSale] = useState(false);
   const [askingPrice, setAskingPrice] = useState("");
   const [condition, setCondition] = useState<Condition>("near_mint");
@@ -50,6 +52,7 @@ export function AddGameSheet() {
   const [popular, setPopular] = useState<PopularHit[]>(
     POPULAR_PS5.map((item) => ({ title: item, cover: null })),
   );
+  const physical = copyKind === "disc";
 
   useEffect(() => {
     if (!open) return;
@@ -79,6 +82,8 @@ export function AddGameSheet() {
     setDiscPhoto(null);
     setNotes("");
     setPurchasePrice("");
+    setPurchaseDate("");
+    setBorrowedFrom("");
     setListForSale(false);
     setAskingPrice("");
     setCondition("near_mint");
@@ -94,22 +99,24 @@ export function AddGameSheet() {
   }
 
   function save(titleValue: string, art: string | null) {
+    const listed = physical && listForSale;
     addGame({
       title: titleValue,
       purchasePrice: Number(purchasePrice) || 0,
-      purchaseDate: new Date().toISOString().slice(0, 10),
-      askingPrice: listForSale ? Number(askingPrice) || 0 : null,
+      purchaseDate: purchaseDate.trim(),
+      askingPrice: listed ? Number(askingPrice) || 0 : null,
       soldPrice: null,
-      status: listForSale ? "for_sale" : "on_shelf",
+      status: listed ? "for_sale" : "on_shelf",
       condition,
       copyKind,
       rating,
+      borrowedFrom: physical ? borrowedFrom.trim() : "",
       notes: notes.trim(),
       coverColor: "#3b82f6",
       coverImage: art,
-      discPhoto,
+      discPhoto: physical ? discPhoto : null,
       casePhoto: null,
-      ...conditionFields(photos),
+      ...conditionFields(physical ? photos : []),
     });
   }
 
@@ -201,6 +208,26 @@ export function AddGameSheet() {
                 />
               </div>
 
+              <FieldSelect
+                id="new-kind"
+                label="Copy"
+                value={copyKind}
+                onChange={(value) => {
+                  const next = value as CopyKind;
+                  setCopyKind(next);
+                  if (next === "digital") setListForSale(false);
+                }}
+                options={COPY_KINDS.map((item) => ({
+                  value: item,
+                  label: COPY_KIND_LABELS[item],
+                }))}
+              />
+              {!physical && (
+                <p className="-mt-3 text-xs text-white/45">
+                  Digital copies live on your account. No disc condition, and they can’t be listed or sold.
+                </p>
+              )}
+
               <section className="min-w-0 space-y-3">
                 <h3 className="text-xs font-medium text-sky-300">Box art</h3>
                 {coverImage && (
@@ -221,7 +248,7 @@ export function AddGameSheet() {
                 />
               </section>
 
-              {copyKind === "disc" && (
+              {physical && (
                 <section className="min-w-0 space-y-2">
                   <h3 className="text-xs font-medium text-sky-300">Disc photo</h3>
                   <p className="text-xs text-white/45">
@@ -245,7 +272,7 @@ export function AddGameSheet() {
                 </section>
               )}
 
-              {copyKind === "disc" && (
+              {physical && (
                 <section className="min-w-0 space-y-2">
                   <h3 className="text-xs font-medium text-sky-300">Condition photos</h3>
                   <p className="text-xs text-white/45">
@@ -274,68 +301,90 @@ export function AddGameSheet() {
                 />
               </div>
 
-              <div className="grid min-w-0 gap-1.5">
-                <Label htmlFor="price">What you paid (optional)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={purchasePrice}
-                  onChange={(event) => setPurchasePrice(event.target.value)}
-                />
+              {physical && (
+                <div className="grid min-w-0 gap-1.5">
+                  <Label htmlFor="borrowed">Borrowed from</Label>
+                  <p className="text-xs text-white/45">
+                    Leave blank if you own this disc. Whose copy it is stays private.
+                  </p>
+                  <Input
+                    id="borrowed"
+                    value={borrowedFrom}
+                    onChange={(event) => setBorrowedFrom(event.target.value)}
+                    placeholder="e.g. Musa"
+                  />
+                </div>
+              )}
+
+              <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="price">What you paid</Label>
+                  <p className="text-xs text-white/45">Optional. 0 if it was a gift.</p>
+                  <Input
+                    id="price"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={purchasePrice}
+                    onChange={(event) => setPurchasePrice(event.target.value)}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="bought">Purchased</Label>
+                  <p className="text-xs text-white/45">Leave blank if you don’t remember.</p>
+                  <Input
+                    id="bought"
+                    type="date"
+                    value={purchaseDate}
+                    onChange={(event) => setPurchaseDate(event.target.value)}
+                  />
+                </div>
               </div>
 
-              <FieldSelect
-                id="new-kind"
-                label="Copy"
-                value={copyKind}
-                onChange={(value) => setCopyKind(value as CopyKind)}
-                options={COPY_KINDS.map((item) => ({
-                  value: item,
-                  label: COPY_KIND_LABELS[item],
-                }))}
-              />
-              <FieldSelect
-                id="new-condition"
-                label="Condition"
-                value={condition}
-                onChange={(value) => setCondition(value as Condition)}
-                options={CONDITIONS.map((item) => ({
-                  value: item,
-                  label: CONDITION_LABELS[item],
-                }))}
-              />
+              {physical && (
+                <FieldSelect
+                  id="new-condition"
+                  label="Condition"
+                  value={condition}
+                  onChange={(value) => setCondition(value as Condition)}
+                  options={CONDITIONS.map((item) => ({
+                    value: item,
+                    label: CONDITION_LABELS[item],
+                  }))}
+                />
+              )}
 
-              <section className="min-w-0 space-y-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-4">
-                <label className="flex items-center justify-between gap-3 text-sm">
-                  <span>
-                    <span className="block font-medium">List for sale</span>
-                    <span className="block text-xs text-white/50">
-                      Friends will see the asking price on your public link.
+              {physical && (
+                <section className="min-w-0 space-y-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-4">
+                  <label className="flex items-center justify-between gap-3 text-sm">
+                    <span>
+                      <span className="block font-medium">List for sale</span>
+                      <span className="block text-xs text-white/50">
+                        Friends will see the asking price on your public link.
+                      </span>
                     </span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    className="size-4 shrink-0"
-                    checked={listForSale}
-                    onChange={(event) => setListForSale(event.target.checked)}
-                  />
-                </label>
-                {listForSale && (
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="ask">Asking price</Label>
-                    <Input
-                      id="ask"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={askingPrice}
-                      onChange={(event) => setAskingPrice(event.target.value)}
+                    <input
+                      type="checkbox"
+                      className="size-4 shrink-0"
+                      checked={listForSale}
+                      onChange={(event) => setListForSale(event.target.checked)}
                     />
-                  </div>
-                )}
-              </section>
+                  </label>
+                  {listForSale && (
+                    <div className="grid gap-1.5">
+                      <Label htmlFor="ask">Asking price</Label>
+                      <Input
+                        id="ask"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={askingPrice}
+                        onChange={(event) => setAskingPrice(event.target.value)}
+                      />
+                    </div>
+                  )}
+                </section>
+              )}
 
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>

@@ -6,7 +6,8 @@ import {
   requireDevice,
   startPair,
 } from "@/lib/cloud/engine";
-import { mutateCloud, persistenceMode } from "@/lib/cloud/persist";
+import { isPublicId } from "@/lib/cloud/hash";
+import { mutateCloud, persistenceMode, readCloud } from "@/lib/cloud/persist";
 import type { Library } from "@/lib/types";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -72,7 +73,7 @@ async function handle(
 
     if (request.method === "GET" && key.startsWith("public/")) {
       const publicId = decodeURIComponent(key.slice("public/".length));
-      const data = await mutateCloud((blob) => publicShelf(blob, publicId));
+      const data = await readCloud((blob) => publicShelf(blob, publicId));
       if (!data) return fail("This share link is unknown.", 404);
       return NextResponse.json(data);
     }
@@ -82,7 +83,11 @@ async function handle(
       const body = await readJson(request);
       const library = isLibrary(body.library) ? body.library : null;
       if (!library) return fail("A library snapshot is required.");
-      const shelf = await mutateCloud((blob) => createShelf(blob, { deviceSecret: secret, library }).shelf);
+      const requested = typeof body.publicId === "string" ? body.publicId.trim() : "";
+      const publicId = requested && isPublicId(requested) ? requested : undefined;
+      const shelf = await mutateCloud(
+        (blob) => createShelf(blob, { deviceSecret: secret, library, publicId }).shelf,
+      );
       return NextResponse.json(payloadFromShelf(shelf));
     }
 

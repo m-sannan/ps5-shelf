@@ -8,6 +8,8 @@ const FILE_PATH =
     ? "/tmp/crate-cloud.json"
     : path.join(process.cwd(), ".data/crate-cloud.json"));
 
+const BLOB_KEY = "crate-cloud.json";
+
 type D1QueryResponse = {
   success: boolean;
   result?: { results?: { json: string }[] }[];
@@ -54,6 +56,10 @@ function d1Env() {
   return { accountId, databaseId, token };
 }
 
+function blobConfigured() {
+  return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+}
+
 async function d1Query(sql: string, params: unknown[] = []) {
   const env = d1Env();
   if (!env) return null;
@@ -77,16 +83,11 @@ async function d1Query(sql: string, params: unknown[] = []) {
 
 async function loadD1(): Promise<CloudBlob | null> {
   if (!d1Env()) return null;
-  try {
-    await d1Query(
-      "CREATE TABLE IF NOT EXISTS crate_blob (id TEXT PRIMARY KEY, json TEXT NOT NULL)",
-    );
-    const rows = await d1Query("SELECT json FROM crate_blob WHERE id = ?", ["main"]);
-    return parseBlob(rows?.[0]?.json);
-  } catch (error) {
-    console.error("D1 load failed", error);
-    return null;
-  }
+  await d1Query(
+    "CREATE TABLE IF NOT EXISTS crate_blob (id TEXT PRIMARY KEY, json TEXT NOT NULL)",
+  );
+  const rows = await d1Query("SELECT json FROM crate_blob WHERE id = ?", ["main"]);
+  return parseBlob(rows?.[0]?.json);
 }
 
 async function saveD1(blob: CloudBlob) {
@@ -99,19 +100,14 @@ async function saveD1(blob: CloudBlob) {
 async function loadPostgres(): Promise<CloudBlob | null> {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
+  const postgres = (await import("postgres")).default;
+  const sql = postgres(url, { max: 1, ssl: "prefer" });
   try {
-    const postgres = (await import("postgres")).default;
-    const sql = postgres(url, { max: 1, ssl: "prefer" });
-    try {
-      await sql`CREATE TABLE IF NOT EXISTS crate_blob (id TEXT PRIMARY KEY, json TEXT NOT NULL)`;
-      const rows = await sql<{ json: string }[]>`SELECT json FROM crate_blob WHERE id = 'main'`;
-      return parseBlob(rows[0]?.json);
-    } finally {
-      await sql.end({ timeout: 5 });
-    }
-  } catch (error) {
-    console.error("Postgres load failed", error);
-    return null;
+    await sql`CREATE TABLE IF NOT EXISTS crate_blob (id TEXT PRIMARY KEY, json TEXT NOT NULL)`;
+    const rows = await sql<{ json: string }[]>`SELECT json FROM crate_blob WHERE id = 'main'`;
+    return parseBlob(rows[0]?.json);
+  } finally {
+    await sql.end({ timeout: 5 });
   }
 }
 
@@ -127,6 +123,30 @@ async function savePostgres(blob: CloudBlob) {
   } finally {
     await sql.end({ timeout: 5 });
   }
+}
+
+async function loadVercelBlob(): Promise<CloudBlob> {
+  const { get, BlobNotFoundError } = await import("@vercel/blob");
+  try {
+    const hit = await get(BLOB_KEY, { access: "private", useCache: false });
+    if (!hit || hit.statusCode !== 200) return emptyBlob();
+    const text = await new Response(hit.stream).text();
+    return parseBlob(text);
+  } catch (error) {
+    if (error instanceof BlobNotFoundError) return emptyBlob();
+    throw error;
+  }
+}
+
+async function saveVercelBlob(blob: CloudBlob) {
+  const { put } = await import("@vercel/blob");
+  await put(BLOB_KEY, JSON.stringify(blob), {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+    cacheControlMaxAge: 60,
+  });
 }
 
 async function loadFile(): Promise<CloudBlob> {
@@ -146,18 +166,9 @@ async function saveFile(blob: CloudBlob) {
 }
 
 async function loadBlob(): Promise<CloudBlob> {
-  try {
-    const fromD1 = await loadD1();
-    if (fromD1) return fromD1;
-  } catch (error) {
-    console.error(error);
-  }
-  try {
-    const fromPg = await loadPostgres();
-    if (fromPg) return fromPg;
-  } catch (error) {
-    console.error(error);
-  }
+  if (d1Env()) return await loadD1() ?? emptyBlob();
+  if (process.env.DATABASE_URL) return await loadPostgres() ?? emptyBlob();
+  if (blobConfigured()) return await loadVercelBlob();
   return await loadFile();
 }
 
@@ -168,6 +179,10 @@ async function saveBlob(blob: CloudBlob) {
   }
   if (process.env.DATABASE_URL) {
     await savePostgres(blob);
+    return;
+  }
+  if (blobConfigured()) {
+    await saveVercelBlob(blob);
     return;
   }
   await saveFile(blob);
@@ -182,8 +197,13 @@ export async function mutateCloud<T>(fn: (blob: CloudBlob) => T | Promise<T>) {
   });
 }
 
+export async function readCloud<T>(fn: (blob: CloudBlob) => T | Promise<T>) {
+  return await withLock(async () => fn(await loadBlob()));
+}
+
 export function persistenceMode() {
   if (d1Env()) return "d1";
   if (process.env.DATABASE_URL) return "postgres";
+  if (blobConfigured()) return "blob";
   return "file";
 }

@@ -112,6 +112,7 @@ function parseGame(raw: unknown, index: number): Game {
       typeof row.rating === "number" && Number.isFinite(row.rating)
         ? snapRating(row.rating) || null
         : null,
+    borrowedFrom: asString(row.borrowedFrom).trim(),
     ...photos,
     loans,
   };

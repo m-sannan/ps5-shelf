@@ -55,6 +55,7 @@ export type Game = {
   photos?: string[];
   copyKind?: CopyKind;
   rating?: number | null;
+  borrowedFrom?: string;
   loans: Loan[];
 };
 

@@ -230,7 +230,11 @@ export function GameGrid({
                     ? `${money(game.askingPrice, moneyCurrency)} · ${CONDITION_LABELS[game.condition]}`
                     : game.status === "sold"
                       ? "Sold"
-                      : `${playLabel(game.status)} · ${CONDITION_LABELS[game.condition]}`}
+                      : game.copyKind === "digital"
+                        ? playLabel(game.status)
+                        : !publicView && game.borrowedFrom
+                          ? `${playLabel(game.status)} · from ${game.borrowedFrom}`
+                          : `${playLabel(game.status)} · ${CONDITION_LABELS[game.condition]}`}
                 </span>
               </button>
             );

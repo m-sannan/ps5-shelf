@@ -1,14 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { FieldSelect } from "@/components/field-select";
 import { useLibrary } from "@/components/library-provider";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { money, shortDate } from "@/lib/format";
 import { libraryStats } from "@/lib/stats";
-import { CURRENCIES, type CurrencyCode } from "@/lib/types";
 
 type Tx = {
   id: string;
@@ -19,7 +14,7 @@ type Tx = {
 };
 
 export function Ledger() {
-  const { library, ready, updateProfile, restoreDemo } = useLibrary();
+  const { library, ready, restoreDemo } = useLibrary();
   const currency = library.profile.currency;
   const stats = libraryStats(library);
 
@@ -30,7 +25,7 @@ export function Ledger() {
         rows.push({
           id: `buy-${game.id}`,
           title: game.title,
-          subtitle: `Bought · ${shortDate(game.purchaseDate)}`,
+          subtitle: game.purchaseDate ? `Bought · ${shortDate(game.purchaseDate)}` : "Bought",
           amount: -game.purchasePrice,
           kind: "out",
         });
@@ -78,6 +73,9 @@ export function Ledger() {
           <h1 className="mt-1 text-2xl font-medium">
             {library.profile.name || "Your shelf"}
           </h1>
+          <p className="mt-2 text-sm text-white/50">
+            Receipts stay here. The seller card is on Share, with a Friends / Me preview.
+          </p>
         </div>
         <button
           type="button"
@@ -153,61 +151,6 @@ export function Ledger() {
           </ul>
         </div>
       </div>
-
-      <div className="rounded-2xl bg-white/4 p-5 ring-1 ring-white/8">
-        <p className="font-medium">Seller card</p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <Field label="Name">
-            <Input
-              value={library.profile.name}
-              onChange={(event) =>
-                updateProfile({ ...library.profile, name: event.target.value })
-              }
-            />
-          </Field>
-          <Field label="City">
-            <Input
-              value={library.profile.city}
-              onChange={(event) =>
-                updateProfile({ ...library.profile, city: event.target.value })
-              }
-            />
-          </Field>
-          <FieldSelect
-            id="currency"
-            label="Currency"
-            value={library.profile.currency}
-            onChange={(value) =>
-              updateProfile({
-                ...library.profile,
-                currency: value as CurrencyCode,
-              })
-            }
-            options={CURRENCIES.map((item) => ({
-              value: item.code,
-              label: `${item.code} — ${item.label}`,
-            }))}
-          />
-          <Field label="Contact">
-            <Input
-              value={library.profile.contact}
-              onChange={(event) =>
-                updateProfile({ ...library.profile, contact: event.target.value })
-              }
-            />
-          </Field>
-          <div className="sm:col-span-2">
-            <Field label="Share note">
-              <Textarea
-                value={library.profile.note}
-                onChange={(event) =>
-                  updateProfile({ ...library.profile, note: event.target.value })
-                }
-              />
-            </Field>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -247,20 +190,5 @@ function Legend({
         <span className="font-medium">{value}</span>
       </span>
     </li>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-1.5">
-      <Label className="text-white/45">{label}</Label>
-      {children}
-    </div>
   );
 }

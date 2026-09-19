@@ -44,11 +44,12 @@ export function generateDeviceSecret() {
 export async function createCloudShelf(input: {
   deviceSecret: string;
   library: Library;
+  publicId?: string;
 }) {
   const payload = await request<CloudShelfPayload>("/create", {
     method: "POST",
     deviceSecret: input.deviceSecret,
-    body: JSON.stringify({ library: input.library }),
+    body: JSON.stringify({ library: input.library, publicId: input.publicId }),
   });
   const session: CloudSession = {
     deviceSecret: input.deviceSecret,
@@ -109,5 +110,9 @@ export async function fetchPublicShelf(publicId: string) {
 }
 
 export function publicShelfPath(publicId: string) {
-  return `/s/${publicId}`;
+  return `/s/${encodeURIComponent(publicId)}`;
+}
+
+export function statusOf(error: unknown) {
+  return (error as { status?: number })?.status ?? 0;
 }

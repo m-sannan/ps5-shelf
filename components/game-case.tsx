@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { artSrc } from "@/lib/art-src";
 import { fileToDataUrl } from "@/lib/file";
-import { discArt } from "@/lib/photos";
+import { discArt, isForSale } from "@/lib/photos";
 import type { Game } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -37,9 +37,7 @@ export function CoverMarks({
   game: Game;
   compact?: boolean;
 }) {
-  const listed =
-    game.status === "for_sale" ||
-    (game.status !== "sold" && (game.askingPrice ?? 0) > 0);
+  const listed = isForSale(game);
   return (
     <>
       {game.copyKind === "digital" && game.status !== "sold" ? (

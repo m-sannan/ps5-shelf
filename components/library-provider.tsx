@@ -16,6 +16,7 @@ import {
   pullCloudShelf,
   pushCloudShelf,
   startDevicePair,
+  statusOf,
 } from "@/lib/cloud/client";
 import type { CloudSession } from "@/lib/cloud/types";
 import { uid } from "@/lib/format";
@@ -182,6 +183,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
             loans: game.loans ?? [],
             copyKind: game.copyKind ?? "disc",
             rating: game.rating ?? null,
+            borrowedFrom: game.borrowedFrom?.trim() ?? "",
             photos: game.photos ?? [],
             coverImage: game.coverImage ?? null,
             casePhoto: game.casePhoto ?? null,
@@ -268,7 +270,33 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     if (!session) return;
     setSyncing(true);
     try {
-      const payload = await pullCloudShelf(session.deviceSecret);
+      let payload;
+      try {
+        payload = await pullCloudShelf(session.deviceSecret);
+      } catch (error) {
+        const status = statusOf(error);
+        if (status !== 401 && status !== 404) throw error;
+        const current = getStoreSnapshot();
+        try {
+          const created = await createCloudShelf({
+            deviceSecret: session.deviceSecret,
+            library: current.library,
+            publicId: session.publicId,
+          });
+          payload = {
+            shelfId: created.session.shelfId,
+            publicId: created.session.publicId,
+            revision: created.session.revision,
+            library: created.library,
+          };
+        } catch (createError) {
+          if (statusOf(createError) === 409) {
+            payload = await pullCloudShelf(session.deviceSecret);
+          } else {
+            throw createError;
+          }
+        }
+      }
       const current = getStoreSnapshot();
       writeState({
         ...current,

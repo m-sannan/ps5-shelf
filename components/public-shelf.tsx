@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { GameGrid } from "@/components/game-grid";
-import { fetchPublicShelf, publicShelfPath } from "@/lib/cloud/client";
+import {
+  createCloudShelf,
+  fetchPublicShelf,
+  publicShelfPath,
+  pushCloudShelf,
+  statusOf,
+} from "@/lib/cloud/client";
 import type { Game, Profile } from "@/lib/types";
 import { money } from "@/lib/format";
 import { isForSale } from "@/lib/photos";
+import { getStoreSnapshot, localPublicShelf } from "@/lib/storage";
 
 export function PublicShelf({ publicId }: { publicId: string }) {
   const [data, setData] = useState<{
@@ -16,15 +23,54 @@ export function PublicShelf({ publicId }: { publicId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchPublicShelf(publicId)
-      .then((payload) => {
+
+    async function load() {
+      try {
+        const payload = await fetchPublicShelf(publicId);
         if (cancelled) return;
         setData({ profile: payload.profile, games: payload.games });
-      })
-      .catch((err: unknown) => {
+        return;
+      } catch (err: unknown) {
+        const state = getStoreSnapshot();
+        const owns =
+          state.cloud?.publicId === publicId && Boolean(state.cloud.deviceSecret) && Boolean(state.library);
+        if (owns && state.cloud) {
+          try {
+            try {
+              await createCloudShelf({
+                deviceSecret: state.cloud.deviceSecret,
+                library: state.library,
+                publicId,
+              });
+            } catch (createError) {
+              if (statusOf(createError) === 409) {
+                await pushCloudShelf({
+                  deviceSecret: state.cloud.deviceSecret,
+                  library: state.library,
+                });
+              } else {
+                throw createError;
+              }
+            }
+            const payload = await fetchPublicShelf(publicId);
+            if (cancelled) return;
+            setData({ profile: payload.profile, games: payload.games });
+            return;
+          } catch {
+            if (cancelled) return;
+            const fallback = localPublicShelf(publicId);
+            if (fallback) {
+              setData(fallback);
+              return;
+            }
+          }
+        }
         if (cancelled) return;
         setError(err instanceof Error ? err.message : "This shelf is not public.");
-      });
+      }
+    }
+
+    void load();
     return () => {
       cancelled = true;
     };
@@ -54,7 +100,7 @@ export function PublicShelf({ publicId }: { publicId: string }) {
     <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] sm:px-5 sm:py-5">
       <div className="mx-auto flex min-h-dvh w-full max-w-6xl min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-[#161616] px-4 py-6 sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10 sm:px-6">
         <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Public shelf</p>
-        <h1 className="mt-1 text-2xl font-medium">{data.profile.name}'s library</h1>
+        <h1 className="mt-1 text-2xl font-medium">{`${data.profile.name}'s library`}</h1>
         <p className="mt-1 text-sm text-white/50">
           {data.profile.city}
           {data.profile.city && data.profile.contact ? " · " : ""}

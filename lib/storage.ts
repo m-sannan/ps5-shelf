@@ -1,6 +1,7 @@
 import { SEED_LIBRARY } from "./seed";
 import { uid } from "./format";
 import type { CloudSession } from "./cloud/types";
+import { toPublicLibrary } from "./public-view";
 import type { Account, AppStore, Library } from "./types";
 
 const LEGACY_KEY = "crate-library-v4";
@@ -220,4 +221,16 @@ export function asAccount(state: ShelfState): Account | null {
 
 export function uidGame() {
   return uid("game");
+}
+
+/** Owner-device fallback for a public link before the cloud copy is stored. */
+export function localPublicShelf(publicId: string) {
+  if (typeof window === "undefined") return null;
+  try {
+    const state = getStoreSnapshot();
+    if (state.cloud?.publicId !== publicId || !state.library) return null;
+    return toPublicLibrary(state.library);
+  } catch {
+    return null;
+  }
 }

@@ -13,7 +13,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { artSrc } from "@/lib/art-src";
 import { fileToDataUrl } from "@/lib/file";
 import { money, shortDate } from "@/lib/format";
-import { conditionFields, conditionPhotos, isForSale, playLane, playLabel, statusForLane } from "@/lib/photos";
+import {
+  conditionFields,
+  conditionPhotos,
+  copyKindPatch,
+  isForSale,
+  playLane,
+  playLabel,
+  statusForLane,
+} from "@/lib/photos";
 import {
   CONDITION_LABELS,
   CONDITIONS,
@@ -55,6 +63,7 @@ export function GamePanel({
   const sold = game.status === "sold";
   const extras = conditionPhotos(game);
   const copyKind = game.copyKind === "digital" ? "digital" : "disc";
+  const physical = copyKind === "disc";
 
   return (
     <aside className={hideChrome ? "min-w-0" : "rounded-2xl border border-white/10 bg-black/40 p-5 shadow-2xl"}>
@@ -71,8 +80,9 @@ export function GamePanel({
         <Badge className={listed ? "bg-amber-400 text-black" : "bg-white/10 text-white"}>
           {sold ? "Sold" : listed ? "For sale" : playLabel(game.status)}
         </Badge>
-        <span>{CONDITION_LABELS[game.condition]}</span>
+        {physical ? <span>{CONDITION_LABELS[game.condition]}</span> : null}
         <span>· {COPY_KIND_LABELS[copyKind]}</span>
+        {!publicView && game.borrowedFrom ? <span>· from {game.borrowedFrom}</span> : null}
         {!publicView && game.purchaseDate ? (
           <span>· bought {shortDate(game.purchaseDate)}</span>
         ) : null}
@@ -152,6 +162,39 @@ export function GamePanel({
       )}
 
       {!readOnly && (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <FieldSelect
+            id={`kind-${gameId}`}
+            label="Copy"
+            value={copyKind}
+            onChange={(value) =>
+              updateGame(gameId, copyKindPatch(value as CopyKind, game.status))
+            }
+            options={COPY_KINDS.map((item) => ({
+              value: item,
+              label: COPY_KIND_LABELS[item],
+            }))}
+          />
+          {physical ? (
+            <FieldSelect
+              id={`cond-${gameId}`}
+              label="Condition"
+              value={game.condition}
+              onChange={(value) => updateGame(gameId, { condition: value as Condition })}
+              options={CONDITIONS.map((item) => ({
+                value: item,
+                label: CONDITION_LABELS[item],
+              }))}
+            />
+          ) : (
+            <p className="self-end text-xs text-white/45">
+              Digital copies live on your account. No disc condition, and they can’t be listed or sold.
+            </p>
+          )}
+        </div>
+      )}
+
+      {!readOnly && physical && (
         <section className="mt-5 space-y-3 rounded-xl border border-amber-400/30 bg-amber-400/5 p-4">
           <label className="flex items-center justify-between gap-3 text-sm">
             <span>
@@ -201,7 +244,7 @@ export function GamePanel({
         </section>
       )}
 
-      {!readOnly && (
+      {!readOnly && physical && (
         <section className="mt-3 space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
           <label className="flex items-center justify-between gap-3 text-sm">
             <span>
@@ -246,27 +289,18 @@ export function GamePanel({
         </section>
       )}
 
-      {!readOnly && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <FieldSelect
-            id={`cond-${gameId}`}
-            label="Condition"
-            value={game.condition}
-            onChange={(value) => updateGame(gameId, { condition: value as Condition })}
-            options={CONDITIONS.map((item) => ({
-              value: item,
-              label: CONDITION_LABELS[item],
-            }))}
-          />
-          <FieldSelect
-            id={`kind-${gameId}`}
-            label="Copy"
-            value={copyKind}
-            onChange={(value) => updateGame(gameId, { copyKind: value as CopyKind })}
-            options={COPY_KINDS.map((item) => ({
-              value: item,
-              label: COPY_KIND_LABELS[item],
-            }))}
+      {!publicView && physical && (
+        <div className="mt-4 grid gap-1.5">
+          <Label htmlFor={`borrowed-${gameId}`}>Borrowed from</Label>
+          <p className="text-xs text-white/45">
+            Whose disc this is. Private — friends never see this.
+          </p>
+          <Input
+            id={`borrowed-${gameId}`}
+            value={game.borrowedFrom ?? ""}
+            disabled={readOnly}
+            placeholder="e.g. Musa"
+            onChange={(event) => updateGame(gameId, { borrowedFrom: event.target.value })}
           />
         </div>
       )}
@@ -275,6 +309,7 @@ export function GamePanel({
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor={`paid-${gameId}`}>What you paid</Label>
+            <p className="text-xs text-white/45">Enter 0 if it was a gift.</p>
             <Input
               id={`paid-${gameId}`}
               type="number"
@@ -289,13 +324,25 @@ export function GamePanel({
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor={`bought-${gameId}`}>Purchased</Label>
-            <Input
-              id={`bought-${gameId}`}
-              type="date"
-              value={game.purchaseDate}
-              disabled={readOnly}
-              onChange={(event) => updateGame(gameId, { purchaseDate: event.target.value })}
-            />
+            <p className="text-xs text-white/45">Leave blank if you don’t remember.</p>
+            <div className="flex items-center gap-2">
+              <Input
+                id={`bought-${gameId}`}
+                type="date"
+                value={game.purchaseDate || ""}
+                disabled={readOnly}
+                onChange={(event) => updateGame(gameId, { purchaseDate: event.target.value })}
+              />
+              {!readOnly && game.purchaseDate ? (
+                <button
+                  type="button"
+                  className="shrink-0 text-xs text-white/45 hover:text-white"
+                  onClick={() => updateGame(gameId, { purchaseDate: "" })}
+                >
+                  Clear
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       )}
@@ -328,7 +375,7 @@ export function GamePanel({
         )}
       </section>
 
-      {copyKind === "disc" && (
+      {physical && (
         <section className="mt-6 min-w-0">
           <h3 className="text-xs font-medium text-sky-300">Condition photos</h3>
           <p className="mt-1 text-xs text-white/45">
