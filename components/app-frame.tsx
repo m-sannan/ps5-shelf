@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/", label: "Library" },
   { href: "/ledger", label: "Money" },
   { href: "/share", label: "Share" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export function AppFrame({
@@ -32,7 +33,7 @@ export function AppFrame({
 
 function SiteHeader({ showAdd }: { showAdd?: boolean }) {
   const pathname = usePathname();
-  const { account, signOut } = useLibrary();
+  const { account, signOut, cloud, syncing } = useLibrary();
 
   return (
     <header className="shrink-0 border-b border-white/8 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pt-3">
@@ -57,10 +58,15 @@ function SiteHeader({ showAdd }: { showAdd?: boolean }) {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
+          {cloud && (
+            <span className="hidden text-[11px] text-white/35 sm:inline">
+              {syncing ? "Syncing" : "Cloud"}
+            </span>
+          )}
           {showAdd && <AddGameSheet />}
           {account && (
             <Button variant="ghost" size="sm" onClick={signOut}>
-              Switch user
+              Lock
             </Button>
           )}
         </div>

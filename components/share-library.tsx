@@ -4,11 +4,12 @@ import { useMemo, useState } from "react";
 import { GameGrid } from "@/components/game-grid";
 import { useLibrary } from "@/components/library-provider";
 import { Button } from "@/components/ui/button";
+import { publicShelfPath } from "@/lib/cloud/client";
 import { money } from "@/lib/format";
 import { libraryStats } from "@/lib/stats";
 
 export function ShareLibrary() {
-  const { library, ready } = useLibrary();
+  const { library, ready, cloud } = useLibrary();
   const [copied, setCopied] = useState(false);
   const stats = libraryStats(library);
   const listed = useMemo(
@@ -18,7 +19,8 @@ export function ShareLibrary() {
   const currency = library.profile.currency;
 
   async function copyLink() {
-    await navigator.clipboard.writeText(`${window.location.origin}/share`);
+    const path = cloud?.publicId ? publicShelfPath(cloud.publicId) : "/share";
+    await navigator.clipboard.writeText(`${window.location.origin}${path}`);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2000);
   }
@@ -35,7 +37,7 @@ export function ShareLibrary() {
             For sale & show-around
           </p>
           <h1 className="mt-1 text-2xl font-medium">
-            {library.profile.name}&apos;s library
+            {library.profile.name}'s library
           </h1>
           <p className="mt-1 text-sm text-white/50">
             {library.profile.city}
@@ -50,10 +52,14 @@ export function ShareLibrary() {
             <span>·</span>
             <span>Asking {money(stats.asking, currency)}</span>
           </div>
+          <p className="mt-2 max-w-xl text-xs text-white/40">
+            This page is your seller view. The public link is read-only and never
+            includes your device key.
+          </p>
         </div>
         <Button onClick={copyLink}>{copied ? "Link copied" : "Copy share link"}</Button>
       </div>
-      <GameGrid games={listed} readOnly />
+      <GameGrid games={listed} readOnly currency={currency} />
     </div>
   );
 }
