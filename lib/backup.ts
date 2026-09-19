@@ -114,6 +114,8 @@ function parseGame(raw: unknown, index: number): Game {
         : null,
     borrowedFrom: asString(row.borrowedFrom).trim(),
     listingNote: asString(row.listingNote),
+    review: asString(row.review),
+    loggedAt: asString(row.loggedAt),
     hidden: row.hidden === true,
     ...photos,
     loans,
@@ -138,6 +140,10 @@ function parseProfile(raw: unknown): Profile {
     sharePaidPrice: row.sharePaidPrice === true,
     sharePublic: row.sharePublic !== false,
     shareCollection: row.shareCollection !== false,
+    handle: asString(row.handle).trim().toLowerCase(),
+    favoriteIds: Array.isArray(row.favoriteIds)
+      ? row.favoriteIds.filter((id): id is string => typeof id === "string").slice(0, 4)
+      : [],
   };
 }
 

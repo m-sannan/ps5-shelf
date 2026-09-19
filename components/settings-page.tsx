@@ -97,7 +97,7 @@ export function SettingsPage() {
       setError("Share links are available after this shelf is online.");
       return;
     }
-    const url = `${window.location.origin}${publicShelfPath(cloud.publicId)}`;
+    const url = `${window.location.origin}${publicShelfPath(cloud.publicId, library.profile.handle)}`;
     const result = await copyText(url);
     if (result === "copied") {
       setError("");
@@ -187,8 +187,8 @@ export function SettingsPage() {
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5">
         <p className="text-sm font-medium">Public share link</p>
         <p className="text-sm text-white/55">
-          Read-only. Share is the page you send people — listings, then the collection
-          you choose to show. Hide the whole shelf or a single game from there.
+          Read-only. This is your public Crate — four favourites, the collection, then
+          any copies for sale. Hide the whole shelf or a single game from Share.
           What you paid stays private. Sold copies stay hidden. The device key is
           never in this URL.
         </p>
@@ -197,8 +197,8 @@ export function SettingsPage() {
             readOnly
             value={
               typeof window !== "undefined"
-                ? `${window.location.origin}${publicShelfPath(cloud.publicId)}`
-                : publicShelfPath(cloud.publicId)
+                ? `${window.location.origin}${publicShelfPath(cloud.publicId, library.profile.handle)}`
+                : publicShelfPath(cloud.publicId, library.profile.handle)
             }
             onFocus={(event) => event.currentTarget.select()}
             className="font-mono text-xs"

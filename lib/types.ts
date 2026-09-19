@@ -57,6 +57,8 @@ export type Game = {
   photos?: string[];
   copyKind?: CopyKind;
   rating?: number | null;
+  review?: string;
+  loggedAt?: string;
   borrowedFrom?: string;
   loans: Loan[];
 };
@@ -70,6 +72,8 @@ export type Profile = {
   sharePaidPrice?: boolean;
   sharePublic?: boolean;
   shareCollection?: boolean;
+  handle?: string;
+  favoriteIds?: string[];
 };
 
 export type Library = {

@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArtworkPicker } from "@/components/artwork-picker";
 import { FieldSelect } from "@/components/field-select";
 import { NativeFileButton, PhotoGallery, PhotoLightbox } from "@/components/photo-gallery";
 import { RatingStars } from "@/components/rating-stars";
+import { ReviewCard, ShareReviewButton } from "@/components/review-card";
 import { useLibrary } from "@/components/library-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { artSrc } from "@/lib/art-src";
 import { fileToDataUrl } from "@/lib/file";
-import { money, shortDate } from "@/lib/format";
+import { toggleFavoriteId } from "@/lib/crate";
+import { isoToday, money, shortDate } from "@/lib/format";
 import {
   conditionFields,
   conditionPhotos,
@@ -32,6 +35,7 @@ import {
   type CopyKind,
   type CurrencyCode,
   type Game,
+  type Profile,
 } from "@/lib/types";
 
 export function GamePanel({
@@ -42,6 +46,9 @@ export function GamePanel({
   hideChrome = false,
   publicView = false,
   currency: currencyProp,
+  author,
+  allowAdd = false,
+  shareUrl,
 }: {
   game: Game | null;
   onClose: () => void;
@@ -50,8 +57,11 @@ export function GamePanel({
   hideChrome?: boolean;
   publicView?: boolean;
   currency?: CurrencyCode;
+  author?: Pick<Profile, "name" | "handle">;
+  allowAdd?: boolean;
+  shareUrl?: string;
 }) {
-  const { library, updateGame, deleteGame } = useLibrary();
+  const { library, updateGame, deleteGame, updateProfile } = useLibrary();
   const currency = currencyProp ?? library.profile.currency;
   const [coverOpen, setCoverOpen] = useState(false);
 
@@ -70,6 +80,9 @@ export function GamePanel({
   const copyKind = game.copyKind === "digital" ? "digital" : "disc";
   const physical = copyKind === "disc";
   const missingCopyPhotos = listed && physical && extras.length === 0;
+  const favoriteIds = library.profile.favoriteIds ?? [];
+  const pinned = favoriteIds.includes(game.id);
+  const fourFull = favoriteIds.length >= 4 && !pinned;
 
   const copyPhotos = physical ? (
     <section className="mt-6 min-w-0">
@@ -141,14 +154,95 @@ export function GamePanel({
 
       {publicView && listed ? copyPhotos : null}
 
-      <div className="mt-4">
-        <p className="mb-1 text-xs font-medium text-white/50">{publicView ? "Rating" : "Your rating"}</p>
-        <RatingStars
-          value={game.rating}
-          readOnly={readOnly}
-          onChange={readOnly ? undefined : (value) => updateGame(gameId, { rating: value })}
-        />
-      </div>
+      {publicView ? (
+        <div className="mt-4 space-y-3">
+          {allowAdd ? <AddToShelfButton game={game} /> : null}
+          {(game.review?.trim() || game.rating) && author ? (
+            <ReviewCard
+              game={game}
+              profile={author}
+              url={shareUrl}
+              shareable
+            />
+          ) : game.rating ? (
+            <div>
+              <p className="mb-1 text-xs font-medium text-white/50">Rating</p>
+              <RatingStars value={game.rating} readOnly size="sm" />
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-4">
+          <p className="mb-1 text-xs font-medium text-white/50">Your rating</p>
+          <RatingStars
+            value={game.rating}
+            readOnly={readOnly}
+            onChange={readOnly ? undefined : (value) => updateGame(gameId, { rating: value })}
+          />
+        </div>
+      )}
+
+      {!readOnly && !publicView && (
+        <section className="mt-5">
+          <Label htmlFor={`review-${gameId}`}>Public take</Label>
+          <p className="mt-1 text-xs text-white/45">
+            Friends see this on your Crate. Private notes stay below. Share it like a
+            Letterboxd review.
+          </p>
+          {readOnly ? (
+            <p className="mt-1.5 text-sm text-white/70">{game.review?.trim() || "No take yet."}</p>
+          ) : (
+            <Textarea
+              id={`review-${gameId}`}
+              className="mt-1.5 min-h-24"
+              value={game.review ?? ""}
+              placeholder="at one point this game…"
+              onChange={(event) => {
+                const review = event.target.value;
+                updateGame(gameId, {
+                  review,
+                  loggedAt: review.trim() ? game.loggedAt || isoToday() : "",
+                });
+              }}
+            />
+          )}
+          {game.review?.trim() ? (
+            <ShareReviewButton
+              game={game}
+              profile={author ?? library.profile}
+              url={shareUrl}
+            />
+          ) : null}
+        </section>
+      )}
+
+      {!readOnly && !publicView && (
+        <button
+          type="button"
+          disabled={fourFull}
+          onClick={() => {
+            const next = toggleFavoriteId(favoriteIds, gameId);
+            if (next.full) return;
+            updateProfile({ ...library.profile, favoriteIds: next.ids });
+          }}
+          className={`mt-4 w-full rounded-xl px-3 py-2.5 text-left text-sm ring-1 ${
+            pinned
+              ? "bg-white/8 text-white ring-white/15"
+              : "text-white/70 ring-white/10 hover:text-white"
+          } disabled:opacity-40`}
+        >
+          <span className="block font-medium">
+            {pinned ? "Pinned as a favourite" : fourFull ? "Favourites are full" : "Pin as a favourite"}
+          </span>
+          <span className="block text-xs text-white/45">
+            {pinned
+              ? "Shows in the four on your public Crate. Tap to unpin."
+              : fourFull
+                ? "Unpin one from Share, then pin this."
+                : "One of the four cases people see first."}
+          </span>
+        </button>
+      )}
 
       {!readOnly && !sold && (
         <section className="mt-5">
@@ -488,5 +582,41 @@ export function GamePanel({
         />
       )}
     </aside>
+  );
+}
+
+function AddToShelfButton({ game }: { game: Game }) {
+  const { addFromPublic, library, signedIn } = useLibrary();
+  const router = useRouter();
+  const [state, setState] = useState<"idle" | "added" | "exists" | "no-shelf">("idle");
+  const already = library.games.some(
+    (row) => row.title.trim().toLowerCase() === game.title.trim().toLowerCase(),
+  );
+
+  if (already || state === "exists") {
+    return <p className="text-sm text-white/50">Already on your shelf.</p>;
+  }
+  if (state === "added") {
+    return <p className="text-sm text-emerald-300/90">Added to your shelf.</p>;
+  }
+
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <Button
+        type="button"
+        onClick={() => {
+          const result = addFromPublic(game);
+          setState(result);
+          if (result === "no-shelf") router.push("/");
+        }}
+      >
+        Add to my shelf
+      </Button>
+      <p className="text-xs text-white/40">
+        {signedIn
+          ? "Copies the title and box art. Rating, notes, and price stay theirs."
+          : "Opens Crate so you can keep this disc."}
+      </p>
+    </div>
   );
 }

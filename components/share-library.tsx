@@ -2,38 +2,39 @@
 
 import { useMemo, useRef, useState } from "react";
 import { ShareGuideButton } from "@/components/app-frame";
+import { CrateView } from "@/components/crate-view";
 import { FieldSelect } from "@/components/field-select";
-import { GameGrid } from "@/components/game-grid";
 import { useLibrary } from "@/components/library-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { artSrc } from "@/lib/art-src";
 import { publicShelfPath } from "@/lib/cloud/client";
 import { copyText, selectField } from "@/lib/copy-text";
-import { money } from "@/lib/format";
-import { isForSale } from "@/lib/photos";
+import { handleError, normalizeHandle } from "@/lib/handle";
+import { toggleFavoriteId } from "@/lib/crate";
 import { toPublicLibrary } from "@/lib/public-view";
-import { CURRENCIES, type CurrencyCode } from "@/lib/types";
+import { CURRENCIES, type CurrencyCode, type Game } from "@/lib/types";
 
 export function ShareLibrary() {
-  const { library, ready, cloud, updateProfile, updateGame } = useLibrary();
+  const { library, ready, cloud, syncError, updateProfile, updateGame } = useLibrary();
   const [copied, setCopied] = useState(false);
   const [hint, setHint] = useState("");
+  const [handleDraft, setHandleDraft] = useState(library.profile.handle ?? "");
+  const [handleFocused, setHandleFocused] = useState(false);
+  const [picking, setPicking] = useState(false);
   const fieldRef = useRef<HTMLInputElement>(null);
   const publicOn = library.profile.sharePublic !== false;
   const showCollection = library.profile.shareCollection !== false;
   const preview = useMemo(() => toPublicLibrary(library), [library]);
-  const forSale = preview.games.filter(isForSale);
-  const rest = preview.games.filter((game) => !isForSale(game));
   const hidden = library.games.filter((game) => game.hidden);
-  const asking = forSale.reduce((sum, game) => sum + (game.askingPrice ?? 0), 0);
-  const currency = library.profile.currency;
+  const favoriteIds = library.profile.favoriteIds ?? [];
   const shareUrl =
     typeof window !== "undefined" && cloud?.publicId
-      ? `${window.location.origin}${publicShelfPath(cloud.publicId)}`
+      ? `${window.location.origin}${publicShelfPath(cloud.publicId, library.profile.handle)}`
       : cloud?.publicId
-        ? publicShelfPath(cloud.publicId)
+        ? publicShelfPath(cloud.publicId, library.profile.handle)
         : "";
 
   async function copyLink() {
@@ -52,6 +53,27 @@ export function ShareLibrary() {
     setHint("Clipboard is blocked in this window. Select the link and copy it.");
   }
 
+  function commitHandle() {
+    const next = normalizeHandle(handleDraft);
+    if (!next) {
+      updateProfile({ ...library.profile, handle: "" });
+      setHint("");
+      return;
+    }
+    const problem = handleError(next);
+    if (problem) {
+      setHint(problem);
+      return;
+    }
+    updateProfile({ ...library.profile, handle: next });
+    setHandleDraft(next);
+    setHint("");
+  }
+
+  function setFavorites(ids: string[]) {
+    updateProfile({ ...library.profile, favoriteIds: ids });
+  }
+
   if (!ready) {
     return <p className="text-sm text-white/50">Opening the library…</p>;
   }
@@ -61,11 +83,11 @@ export function ShareLibrary() {
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Share</p>
-          <h1 className="mt-1 text-2xl font-medium">The page you send people</h1>
+          <h1 className="mt-1 text-2xl font-medium">Your public Crate</h1>
           <p className="mt-2 max-w-xl text-sm text-white/60">
-            Library is your private shelf. This link is the public listing — copies for sale,
-            plus the collection you want to show off. Hide the whole shelf, hide one game,
-            or show only what is listed.
+            Library stays private. This is the page people remember — four favourites,
+            what you are playing, then the shelf. Listings sit at the bottom if you
+            want them. Pin four, pick a handle, download the card.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -95,7 +117,7 @@ export function ShareLibrary() {
         <div className="mt-4 space-y-3">
           <Toggle
             label="Public link"
-            hint="Off: the link says this shelf is private. Listings and the collection are hidden."
+            hint="Off: the link says this Crate is private."
             checked={publicOn}
             onChange={(checked) => updateProfile({ ...library.profile, sharePublic: checked })}
           />
@@ -115,6 +137,25 @@ export function ShareLibrary() {
                 updateProfile({ ...library.profile, name: event.target.value })
               }
             />
+          </Field>
+          <Field label="Handle">
+            <Input
+              value={handleFocused ? handleDraft : (library.profile.handle ?? "")}
+              placeholder="sannan"
+              onFocus={() => {
+                setHandleDraft(library.profile.handle ?? "");
+                setHandleFocused(true);
+              }}
+              onChange={(event) => setHandleDraft(event.target.value)}
+              onBlur={() => {
+                setHandleFocused(false);
+                commitHandle();
+              }}
+            />
+            <p className="mt-1 text-xs text-white/40">
+              Turns the link into /s/yourname. Letters, numbers, hyphen. Old links still work.
+            </p>
+            {syncError ? <p className="mt-1 text-xs text-destructive">{syncError}</p> : null}
           </Field>
           <Field label="City">
             <Input
@@ -154,11 +195,70 @@ export function ShareLibrary() {
                 onChange={(event) =>
                   updateProfile({ ...library.profile, note: event.target.value })
                 }
-                placeholder="Local pickup. Evenings. UPI."
+                placeholder="Physical copies. Local pickup."
               />
             </Field>
           </div>
         </div>
+      </section>
+
+      <section className="rounded-2xl bg-white/4 p-5 ring-1 ring-white/8">
+        <p className="font-medium">Four favourites</p>
+        <p className="mt-1 text-sm text-white/50">
+          The first thing people see. Like Letterboxd four posters. Empty slots fall back to
+          your highest rated games.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[0, 1, 2, 3].map((slot) => {
+            const id = favoriteIds[slot];
+            const game = id ? library.games.find((row) => row.id === id) : null;
+            return (
+              <button
+                key={slot}
+                type="button"
+                onClick={() => {
+                  if (game) {
+                    setFavorites(favoriteIds.filter((fav) => fav !== game.id));
+                    return;
+                  }
+                  setPicking(true);
+                }}
+                className="min-w-0 text-left"
+              >
+                <span className="relative block aspect-[3/4] overflow-hidden rounded-lg bg-black/30 ring-1 ring-dashed ring-white/15">
+                  {game?.coverImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={artSrc(game.coverImage)} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center p-3 text-center text-xs text-white/40">
+                      {game ? game.title : "Pick a game"}
+                    </span>
+                  )}
+                </span>
+                <span className="mt-2 block truncate text-xs text-white/55">
+                  {game ? "Tap to unpin" : `Slot ${slot + 1}`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {picking ? (
+          <FavoritePickList
+            games={library.games.filter((game) => game.status !== "sold" && !game.hidden)}
+            selected={favoriteIds}
+            onPick={(game) => {
+              const next = toggleFavoriteId(favoriteIds, game.id);
+              if (next.full) {
+                setHint("Four already pinned. Unpin one first.");
+                return;
+              }
+              setFavorites(next.ids);
+              setPicking(false);
+              setHint("");
+            }}
+            onClose={() => setPicking(false)}
+          />
+        ) : null}
       </section>
 
       {hidden.length > 0 && (
@@ -187,87 +287,64 @@ export function ShareLibrary() {
         <h2 className="mt-1 text-xl font-medium">What they see</h2>
         {!publicOn ? (
           <p className="mt-4 rounded-2xl bg-white/4 px-4 py-8 text-center text-sm text-white/55 ring-1 ring-white/8">
-            The public link currently says this shelf is private.
+            The public link currently says this Crate is private.
           </p>
         ) : (
-          <>
-            <h3 className="mt-1 text-2xl font-medium">{`${preview.profile.name}'s library`}</h3>
-            <p className="mt-1 text-sm text-white/50">
-              {preview.profile.city}
-              {preview.profile.city && preview.profile.contact ? " · " : ""}
-              {preview.profile.contact}
-            </p>
-            {preview.profile.note ? (
-              <p className="mt-3 max-w-2xl text-sm text-white/70">{preview.profile.note}</p>
-            ) : (
-              <p className="mt-3 text-sm text-white/40">
-                Add a share note so people know how to reach you.
-              </p>
-            )}
-            <div className="mt-4 flex flex-wrap gap-2 text-sm text-white/60">
-              <span>{forSale.length} for sale</span>
-              {showCollection && (
-                <>
-                  <span>·</span>
-                  <span>{rest.length} on the shelf</span>
-                </>
-              )}
-              {forSale.length > 0 && (
-                <>
-                  <span>·</span>
-                  <span>Asking {money(asking, currency)}</span>
-                </>
-              )}
-            </div>
-          </>
+          <div className="mt-6">
+            <CrateView
+              profile={preview.profile}
+              games={preview.games}
+              publicId={cloud?.publicId}
+              copyListing
+              showCard
+              isOwner
+            />
+          </div>
         )}
       </section>
+    </div>
+  );
+}
 
-      {publicOn && (
-        <>
-          <section className="min-w-0">
-            <h2 className="text-lg font-medium">For sale</h2>
-            <p className="mt-1 text-sm text-white/50">
-              Listings look like a Discord post — title, price, city, photos of this copy, and the text you wrote.
-            </p>
-            {forSale.length === 0 ? (
-              <p className="mt-3 text-sm text-white/50">
-                Nothing listed. Open a physical disc in Library, turn on For sale, and write what a buyer needs to know.
-              </p>
-            ) : (
-              <div className="mt-4">
-                <GameGrid
-                  games={forSale}
-                  readOnly
-                  publicView
-                  showFilters={false}
-                  layout="listings"
-                  copyListing
-                  currency={currency}
-                  seller={preview.profile}
-                />
-              </div>
-            )}
-          </section>
-
-          {showCollection && rest.length > 0 && (
-            <section className="min-w-0">
-              <h2 className="text-lg font-medium">Collection</h2>
-              <p className="mt-1 text-sm text-white/50">The rest of the shelf. Not for sale.</p>
-              <div className="mt-4">
-                <GameGrid
-                  games={rest}
-                  readOnly
-                  publicView
-                  showFilters={false}
-                  currency={currency}
-                  seller={preview.profile}
-                />
-              </div>
-            </section>
-          )}
-        </>
-      )}
+function FavoritePickList({
+  games,
+  selected,
+  onPick,
+  onClose,
+}: {
+  games: Game[];
+  selected: string[];
+  onPick: (game: Game) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="mt-4 rounded-xl bg-black/30 p-3 ring-1 ring-white/10">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-sm font-medium">Pick a game</p>
+        <button type="button" className="text-sm text-white/50 hover:text-white" onClick={onClose}>
+          Close
+        </button>
+      </div>
+      <ul className="max-h-64 space-y-1 overflow-y-auto">
+        {games.map((game) => (
+          <li key={game.id}>
+            <button
+              type="button"
+              disabled={selected.includes(game.id)}
+              onClick={() => onPick(game)}
+              className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-white/5 disabled:opacity-40"
+            >
+              <span className="size-10 shrink-0 overflow-hidden rounded bg-white/10">
+                {game.coverImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={artSrc(game.coverImage)} alt="" className="h-full w-full object-cover" />
+                ) : null}
+              </span>
+              <span className="truncate">{game.title}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

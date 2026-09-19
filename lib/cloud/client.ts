@@ -1,5 +1,6 @@
 import type { Library } from "../types";
 import type { CloudErrorBody, CloudSession, CloudShelfPayload } from "./types";
+import { cratePath } from "../handle";
 
 const BASE = process.env.NEXT_PUBLIC_CLOUD_API ?? "/api/cloud";
 
@@ -110,8 +111,8 @@ export async function fetchPublicShelf(publicId: string) {
   }>(`/public/${encodeURIComponent(publicId)}`);
 }
 
-export function publicShelfPath(publicId: string) {
-  return `/s/${encodeURIComponent(publicId)}`;
+export function publicShelfPath(publicId: string, handle?: string | null) {
+  return cratePath(publicId, handle);
 }
 
 export function statusOf(error: unknown) {

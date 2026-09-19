@@ -37,6 +37,8 @@ export const SEED_LIBRARY: Library = {
     sharePaidPrice: false,
     sharePublic: true,
     shareCollection: true,
+    handle: "",
+    favoriteIds: ["tlou1", "ghost-of-tsushima", "miles-morales", "rdr2"],
   },
   games: [
     game({
@@ -115,6 +117,9 @@ export const SEED_LIBRARY: Library = {
       coverImage:
         "https://upload.wikimedia.org/wikipedia/en/8/86/The_Last_of_Us_Part_I_cover.jpg",
       rating: 5,
+      review:
+        "The last hour wrecked me. Still think about the porch scene every time I see the case on the shelf.",
+      loggedAt: "2025-07-04",
       loans: [],
     }),
     game({

@@ -33,6 +33,8 @@ export function emptyLibrary(name: string): Library {
       currency: "INR",
       sharePublic: true,
       shareCollection: true,
+      handle: "",
+      favoriteIds: [],
     },
     games: [],
   };
@@ -230,7 +232,10 @@ export function localPublicShelf(publicId: string) {
   if (typeof window === "undefined") return null;
   try {
     const state = getStoreSnapshot();
-    if (state.cloud?.publicId !== publicId || !state.library) return null;
+    if (state.cloud?.publicId !== publicId) {
+      const handle = state.library.profile.handle?.trim().toLowerCase();
+      if (!handle || handle !== publicId.trim().toLowerCase()) return null;
+    }
     return toPublicLibrary(state.library);
   } catch {
     return null;

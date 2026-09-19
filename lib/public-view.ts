@@ -17,6 +17,8 @@ export function toPublicGame(game: Game): Game {
     notes: "",
     borrowedFrom: "",
     listingNote: game.listingNote ?? "",
+    review: game.review ?? "",
+    loggedAt: game.loggedAt ?? "",
     hidden: false,
   };
 }
@@ -31,6 +33,8 @@ export function toPublicProfile(profile: Profile): Profile {
     sharePaidPrice: false,
     sharePublic: profile.sharePublic !== false,
     shareCollection: profile.shareCollection !== false,
+    handle: profile.handle ?? "",
+    favoriteIds: profile.favoriteIds ?? [],
   };
 }
 

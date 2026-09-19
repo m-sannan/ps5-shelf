@@ -1,5 +1,6 @@
 import type { Library } from "../types";
 import { toPublicLibrary } from "../public-view";
+import { isHandle, normalizeHandle } from "../handle";
 import { hashSecret, isPublicId, newId, newPairingCode, newPublicId } from "./hash";
 
 export const PAIR_TTL_MS = 5 * 60 * 1000;
@@ -55,6 +56,32 @@ function shelfOf(blob: CloudBlob, shelfId: string) {
   return blob.shelves.find((row) => row.id === shelfId) ?? null;
 }
 
+function withClaimedHandle(library: Library, blob: CloudBlob, shelfId?: string): Library {
+  const handle = normalizeHandle(library.profile.handle ?? "");
+  let nextHandle = isHandle(handle) ? handle : "";
+  if (nextHandle) {
+    const taken = blob.shelves.some((row) => {
+      if (shelfId && row.id === shelfId) return false;
+      if (row.publicId.toLowerCase() === nextHandle) return true;
+      return normalizeHandle(row.library.profile.handle ?? "") === nextHandle;
+    });
+    if (taken) {
+      if (shelfId) {
+        throw Object.assign(new Error("That handle is already taken."), { status: 409 });
+      }
+      nextHandle = "";
+    }
+  }
+  return {
+    ...library,
+    profile: {
+      ...library.profile,
+      handle: nextHandle,
+      favoriteIds: (library.profile.favoriteIds ?? []).filter(Boolean).slice(0, 4),
+    },
+  };
+}
+
 export function requireDevice(blob: CloudBlob, secret: string) {
   purge(blob);
   const device = deviceOf(blob, secret);
@@ -89,11 +116,12 @@ export function createShelf(
     requested && isPublicId(requested) && !blob.shelves.some((row) => row.publicId === requested)
       ? requested
       : newPublicId();
+  const library = withClaimedHandle(input.library, blob);
   const shelf: ShelfRecord = {
     id: newId("shelf"),
     publicId,
     revision: 1,
-    library: structuredClone(input.library),
+    library: structuredClone(library),
     createdAt,
     updatedAt: createdAt,
   };
@@ -114,7 +142,7 @@ export function putShelf(
   input: { deviceSecret: string; library: Library },
 ) {
   const { device, shelf } = requireDevice(blob, input.deviceSecret);
-  shelf.library = structuredClone(input.library);
+  shelf.library = structuredClone(withClaimedHandle(input.library, blob, shelf.id));
   shelf.revision += 1;
   shelf.updatedAt = nowIso();
   device.lastSeenAt = shelf.updatedAt;
@@ -172,11 +200,16 @@ export function joinPair(blob: CloudBlob, input: { code: string; deviceSecret: s
 
 export function publicShelf(blob: CloudBlob, publicId: string) {
   purge(blob);
-  const shelf = blob.shelves.find((row) => row.publicId === publicId);
+  const key = publicId.trim();
+  const lower = key.toLowerCase();
+  const shelf =
+    blob.shelves.find((row) => row.publicId === key) ??
+    blob.shelves.find((row) => normalizeHandle(row.library.profile.handle ?? "") === lower);
   if (!shelf) return null;
   const published = toPublicLibrary(shelf.library);
   return {
     publicId: shelf.publicId,
+    handle: published.profile.handle || "",
     updatedAt: shelf.updatedAt,
     privateShelf: published.privateShelf,
     profile: published.profile,

@@ -63,6 +63,7 @@ type LibraryContextValue = {
   addGame: (
     game: Omit<Game, "id" | "loans" | "platform"> & { loans?: Loan[] },
   ) => void;
+  addFromPublic: (game: Game) => "added" | "exists" | "no-shelf";
   updateGame: (id: string, patch: Partial<Game>) => void;
   deleteGame: (id: string) => void;
   addLoan: (gameId: string, loan: Omit<Loan, "id">) => void;
@@ -159,7 +160,17 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         pushNow(next, session)
           .then(() => setError(""))
           .catch((error: unknown) => {
-            setError(error instanceof Error ? error.message : "Could not sync.");
+            const message = error instanceof Error ? error.message : "Could not sync.";
+            setError(message);
+            if (message.includes("handle is already taken")) {
+              const current = getStoreSnapshot();
+              if (current.library.profile.handle) {
+                writeLibrary({
+                  ...current.library,
+                  profile: { ...current.library.profile, handle: "" },
+                });
+              }
+            }
           })
           .finally(() => setSyncing(false));
       }, 700);
@@ -196,6 +207,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
             rating: game.rating ?? null,
             borrowedFrom: game.borrowedFrom?.trim() ?? "",
             listingNote: game.listingNote ?? "",
+            review: game.review ?? "",
+            loggedAt: game.loggedAt ?? "",
             hidden: game.hidden === true,
             photos: game.photos ?? [],
             coverImage: game.coverImage ?? null,
@@ -207,6 +220,55 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       });
     },
     [library, schedulePush],
+  );
+
+  const addFromPublic = useCallback(
+    (source: Game): "added" | "exists" | "no-shelf" => {
+      let state = getStoreSnapshot();
+      if (!state.unlocked && hasSavedShelf(state)) {
+        unlockShelf();
+        state = getStoreSnapshot();
+      }
+      if (!state.unlocked) return "no-shelf";
+      const title = source.title.trim().toLowerCase();
+      if (state.library.games.some((game) => game.title.trim().toLowerCase() === title)) {
+        return "exists";
+      }
+      const digital = source.copyKind === "digital";
+      schedulePush({
+        ...state.library,
+        games: [
+          {
+            id: uid("game"),
+            title: source.title,
+            platform: "PS5",
+            purchasePrice: 0,
+            purchaseDate: "",
+            askingPrice: null,
+            soldPrice: null,
+            status: "on_shelf",
+            condition: "good",
+            notes: "",
+            listingNote: "",
+            review: "",
+            loggedAt: "",
+            hidden: false,
+            coverColor: source.coverColor || "#3b82f6",
+            coverImage: source.coverImage ?? null,
+            discPhoto: null,
+            casePhoto: null,
+            photos: [],
+            copyKind: digital ? "digital" : "disc",
+            rating: null,
+            borrowedFrom: "",
+            loans: [],
+          },
+          ...state.library.games,
+        ],
+      });
+      return "added";
+    },
+    [schedulePush],
   );
 
   const updateGame = useCallback(
@@ -225,6 +287,10 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     (id: string) => {
       schedulePush({
         ...library,
+        profile: {
+          ...library.profile,
+          favoriteIds: (library.profile.favoriteIds ?? []).filter((fav) => fav !== id),
+        },
         games: library.games.filter((game) => game.id !== id),
       });
     },
@@ -368,6 +434,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
               currency: "INR" as const,
               sharePublic: true,
               shareCollection: true,
+              handle: "",
+              favoriteIds: [],
             },
             games: [],
           };
@@ -456,6 +524,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       syncError: errorState,
       updateProfile,
       addGame,
+      addFromPublic,
       updateGame,
       deleteGame,
       addLoan,
@@ -464,7 +533,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       restoreDemo: () => {
         const next = resetLibrary();
         const session = getStoreSnapshot().cloud;
-        if (session) void pushNow(next, session);
+        if (session) {
+          void pushNow(next, session).catch((error: unknown) => {
+            setError(error instanceof Error ? error.message : "Could not sync.");
+          });
+        }
       },
       signIn: () => unlockShelf(),
       signOut: lockShelf,
@@ -484,6 +557,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       errorState,
       updateProfile,
       addGame,
+      addFromPublic,
       updateGame,
       deleteGame,
       addLoan,

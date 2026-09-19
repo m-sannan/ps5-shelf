@@ -39,6 +39,8 @@ export function GameGrid({
   layout = "grid",
   copyListing = false,
   seller,
+  caption,
+  onOpenGame,
 }: {
   games?: Game[];
   readOnly?: boolean;
@@ -48,6 +50,8 @@ export function GameGrid({
   layout?: "grid" | "listings";
   copyListing?: boolean;
   seller?: Pick<Profile, "city" | "currency" | "contact">;
+  caption?: string | false;
+  onOpenGame?: (game: Game) => void;
 }) {
   const { library, updateGame } = useLibrary();
   const filtersOn = showFilters ?? true;
@@ -103,7 +107,7 @@ export function GameGrid({
     });
   }, [source, filter, query]);
 
-  const opened = source.find((game) => game.id === openedId) ?? null;
+  const opened = onOpenGame ? null : source.find((game) => game.id === openedId) ?? null;
   const openedShots = opened ? listingShots(opened) : [];
 
   useEffect(() => {
@@ -116,6 +120,14 @@ export function GameGrid({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  function selectGame(game: Game) {
+    if (onOpenGame) {
+      onOpenGame(game);
+      return;
+    }
+    setOpenedId(game.id);
+  }
 
   function openShot(src: string | null | undefined) {
     if (!src || !opened) return;
@@ -179,9 +191,9 @@ export function GameGrid({
         </div>
       )}
 
-      {layout !== "listings" && (
+      {layout !== "listings" && caption !== false && (
       <p className="mt-5 text-[11px] uppercase tracking-[0.22em] text-white/35">
-        {publicView ? "Copies" : "Library"} {games.length}
+        {caption ?? (publicView ? "Copies" : "Library")} {games.length}
       </p>
       )}
 
@@ -215,7 +227,7 @@ export function GameGrid({
               key={game.id}
               game={game}
               profile={sellerCard}
-              onOpen={() => setOpenedId(game.id)}
+              onOpen={() => selectGame(game)}
               canCopy={copyListing}
             />
           ))}
@@ -230,7 +242,7 @@ export function GameGrid({
               <button
                 key={game.id}
                 type="button"
-                onClick={() => setOpenedId(game.id)}
+                onClick={() => selectGame(game)}
                 className="group min-w-0 text-left"
               >
                 <span className="block overflow-hidden rounded-lg bg-[#0e0e10] ring-1 ring-white/8 transition group-hover:ring-white/25">
