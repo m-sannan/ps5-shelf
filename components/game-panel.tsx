@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { artSrc } from "@/lib/art-src";
 import { fileToDataUrl } from "@/lib/file";
 import { money, shortDate } from "@/lib/format";
-import { conditionFields, conditionPhotos, isForSale } from "@/lib/photos";
+import { conditionFields, conditionPhotos, isForSale, playLane, playLabel, statusForLane } from "@/lib/photos";
 import {
   CONDITION_LABELS,
   CONDITIONS,
@@ -69,7 +69,7 @@ export function GamePanel({
 
       <div className="flex flex-wrap items-center gap-2 text-sm text-white/55">
         <Badge className={listed ? "bg-amber-400 text-black" : "bg-white/10 text-white"}>
-          {sold ? "Sold" : listed ? "For sale" : "On the shelf"}
+          {sold ? "Sold" : listed ? "For sale" : playLabel(game.status)}
         </Badge>
         <span>{CONDITION_LABELS[game.condition]}</span>
         <span>· {COPY_KIND_LABELS[copyKind]}</span>
@@ -86,6 +86,42 @@ export function GamePanel({
           onChange={readOnly ? undefined : (value) => updateGame(gameId, { rating: value })}
         />
       </div>
+
+      {!readOnly && !sold && (
+        <section className="mt-5">
+          <p className="mb-2 text-xs font-medium text-white/50">Stack</p>
+          <div className="grid grid-cols-3 gap-1 rounded-lg bg-white/5 p-1">
+            {(
+              [
+                ["shelf", "Shelf"],
+                ["playing", "Playing"],
+                ["done", "Done"],
+              ] as const
+            ).map(([id, label]) => {
+              const active = playLane(game.status) === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`rounded-md px-2 py-2 text-sm ${
+                    active ? "bg-[#2f2f32] text-white" : "text-white/45 hover:text-white"
+                  }`}
+                  onClick={() =>
+                    updateGame(gameId, {
+                      status: statusForLane(id, game.status),
+                    })
+                  }
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-xs text-white/40">
+            Playing is your current stack. Done is finished. Shelf is everything else.
+          </p>
+        </section>
+      )}
 
       {!publicView && (
         <section className="mt-5">
@@ -132,11 +168,14 @@ export function GamePanel({
               onChange={(event) => {
                 if (event.target.checked) {
                   updateGame(gameId, {
-                    status: "for_sale",
                     askingPrice: game.askingPrice ?? game.purchasePrice ?? 0,
+                    status: game.status === "sold" ? "on_shelf" : game.status === "for_sale" ? "on_shelf" : game.status,
                   });
                 } else {
-                  updateGame(gameId, { status: "on_shelf", askingPrice: null });
+                  updateGame(gameId, {
+                    askingPrice: null,
+                    status: game.status === "for_sale" ? "on_shelf" : game.status,
+                  });
                 }
               }}
             />
@@ -154,7 +193,6 @@ export function GamePanel({
                   const next = event.target.value;
                   updateGame(gameId, {
                     askingPrice: next === "" ? 0 : Number(next),
-                    status: "for_sale",
                   });
                 }}
               />

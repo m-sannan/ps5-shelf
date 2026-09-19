@@ -10,14 +10,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { artSrc } from "@/lib/art-src";
 import { money } from "@/lib/format";
-import { coverOf, isForSale } from "@/lib/photos";
+import { coverOf, isCompleted, isForSale, isPlaying, playLabel } from "@/lib/photos";
 import {
   CONDITION_LABELS,
   type CurrencyCode,
   type Game,
 } from "@/lib/types";
 
-type FilterId = "all" | "for_sale" | "sold";
+type FilterId = "all" | "playing" | "done" | "for_sale" | "sold";
 
 export function GameGrid({
   games: gamesProp,
@@ -44,6 +44,8 @@ export function GameGrid({
   const source = gamesProp ?? library.games;
   const saleCount = source.filter(isForSale).length;
   const soldCount = source.filter((game) => game.status === "sold").length;
+  const playingCount = source.filter(isPlaying).length;
+  const doneCount = source.filter((game) => game.status === "completed").length;
   const filters: { id: FilterId; label: string; count: number }[] = publicView
     ? [
         { id: "all", label: "All", count: source.length },
@@ -51,17 +53,30 @@ export function GameGrid({
       ]
     : [
         { id: "all", label: "All", count: source.length },
+        { id: "playing", label: "Playing", count: playingCount },
+        { id: "done", label: "Done", count: doneCount },
         { id: "for_sale", label: "For sale", count: saleCount },
         { id: "sold", label: "Sold", count: soldCount },
       ];
 
   const games = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return source.filter((game) => {
+    const next = source.filter((game) => {
+      if (filter === "playing" && !isPlaying(game)) return false;
+      if (filter === "done" && game.status !== "completed") return false;
       if (filter === "for_sale" && !isForSale(game)) return false;
       if (filter === "sold" && game.status !== "sold") return false;
       if (q && !game.title.toLowerCase().includes(q)) return false;
       return true;
+    });
+    return next.slice().sort((a, b) => {
+      const rank = (game: Game) => {
+        if (game.status === "sold") return 3;
+        if (isPlaying(game)) return 0;
+        if (isCompleted(game)) return 1;
+        return 2;
+      };
+      return rank(a) - rank(b);
     });
   }, [source, filter, query]);
 
@@ -139,14 +154,24 @@ export function GameGrid({
       {games.length === 0 ? (
         <div className="flex min-h-[40vh] flex-col items-center justify-center text-center">
           <p className="text-xl font-medium">
-            {filter === "for_sale" ? "Nothing listed for sale" : "No copies here"}
+            {filter === "for_sale"
+              ? "Nothing listed for sale"
+              : filter === "playing"
+                ? "Nothing in the stack"
+                : filter === "done"
+                  ? "Nothing marked done"
+                  : filter === "sold"
+                    ? "Nothing sold yet"
+                    : "No copies here"}
           </p>
           <p className="mt-2 max-w-sm text-sm text-white/55">
             {filter === "for_sale"
               ? "Open a game and turn on For sale. It will show up here and on your public link."
-              : publicView
-                ? "Nothing listed in this view."
-                : "Add a game, or clear the search and filters."}
+              : filter === "playing"
+                ? "Open a game and set it to Playing. That’s your current stack."
+                : publicView
+                  ? "Nothing listed in this view."
+                  : "Add a game, or clear the search and filters."}
           </p>
         </div>
       ) : (
@@ -163,9 +188,11 @@ export function GameGrid({
               >
                 <span className="block overflow-hidden rounded-lg bg-[#0e0e10] ring-1 ring-white/8 transition group-hover:ring-white/25">
                   {shelfToggle && shelfView === "disc" ? (
-                    <span className="relative flex aspect-square items-center justify-center p-3">
-                      <DiscFace game={game} size={132} />
-                      <CoverMarks game={game} />
+                    <span className="relative block aspect-square">
+                      <span className="absolute inset-[11%]">
+                        <DiscFace game={game} size="fill" />
+                      </span>
+                      <CoverMarks game={game} compact />
                     </span>
                   ) : (
                   <span className="relative block aspect-[3/4]">
@@ -203,7 +230,7 @@ export function GameGrid({
                     ? `${money(game.askingPrice, moneyCurrency)} · ${CONDITION_LABELS[game.condition]}`
                     : game.status === "sold"
                       ? "Sold"
-                      : CONDITION_LABELS[game.condition]}
+                      : `${playLabel(game.status)} · ${CONDITION_LABELS[game.condition]}`}
                 </span>
               </button>
             );
