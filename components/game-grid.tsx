@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { artSrc } from "@/lib/art-src";
 import { money } from "@/lib/format";
-import { STATUS_LABELS, type Game, type PlayStatus } from "@/lib/types";
+import { STATUS_LABELS, type CurrencyCode, type Game, type PlayStatus } from "@/lib/types";
 
 const FILTERS: { id: "all" | PlayStatus; label: string }[] = [
   { id: "all", label: "All" },
@@ -21,14 +21,17 @@ const FILTERS: { id: "all" | PlayStatus; label: string }[] = [
 export function GameGrid({
   games: gamesProp,
   readOnly = false,
+  currency,
 }: {
   games?: Game[];
   readOnly?: boolean;
+  currency?: CurrencyCode;
 }) {
   const { library } = useLibrary();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [query, setQuery] = useState("");
   const [openedId, setOpenedId] = useState<string | null>(null);
+  const moneyCurrency = currency ?? library.profile.currency;
 
   const source = gamesProp ?? library.games;
   const games = useMemo(() => {
@@ -126,7 +129,7 @@ export function GameGrid({
               </span>
               <span className="mt-0.5 block truncate text-xs text-white/40">
                 {game.status === "for_sale" && game.askingPrice != null
-                  ? money(game.askingPrice, library.profile.currency)
+                  ? money(game.askingPrice, moneyCurrency)
                   : STATUS_LABELS[game.status]}
               </span>
             </button>
