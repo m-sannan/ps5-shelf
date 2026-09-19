@@ -24,10 +24,16 @@ export function AppFrame({
   showAdd?: boolean;
 }) {
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] sm:px-5 sm:py-5">
-      <div className="relative mx-auto flex min-h-dvh w-full min-w-0 max-w-6xl flex-1 flex-col overflow-hidden bg-[#161616] sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10 sm:shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+    <div className="flex h-dvh min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0d] sm:h-auto sm:min-h-full sm:overflow-visible sm:px-5 sm:py-5">
+      <div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-hidden bg-[#161616] sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10 sm:shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
         <SiteHeader showAdd={showAdd} />
-        <div className={cn("min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 sm:px-6 sm:pb-6", showAdd ? "pb-36" : "pb-28")}>
+        <div
+          className={cn(
+            "min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pt-4 sm:px-6 sm:pb-6",
+            showAdd ? "pb-36" : "pb-28",
+            "sm:pb-6",
+          )}
+        >
           {children}
         </div>
         <MobileDock />
@@ -43,7 +49,7 @@ function SiteHeader({ showAdd }: { showAdd?: boolean }) {
   const { cloud, syncing } = useLibrary();
 
   return (
-    <header className="shrink-0 border-b border-white/8 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pt-3">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-white/8 bg-[#161616]/95 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur-md sm:px-6 sm:pt-3">
       <div className="flex items-center gap-3">
         <Link href="/" className="text-[15px] font-medium tracking-tight">
           Crate
@@ -80,7 +86,7 @@ function SiteHeader({ showAdd }: { showAdd?: boolean }) {
 function MobileDock() {
   const pathname = usePathname();
   return (
-    <nav className="absolute inset-x-0 bottom-0 z-30 border-t border-white/8 bg-[#161616]/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 sm:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/8 bg-[#161616]/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1 backdrop-blur-md sm:hidden">
       <ul className="grid grid-cols-4">
         {LINKS.map((link) => {
           const Icon = link.icon;

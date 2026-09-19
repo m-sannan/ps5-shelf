@@ -154,7 +154,7 @@ export function AddGameSheet({ variant = "header" }: { variant?: "header" | "fab
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="absolute bottom-[4.75rem] right-4 z-40 flex size-14 items-center justify-center rounded-full bg-white text-black shadow-lg sm:hidden"
+          className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-50 flex size-14 items-center justify-center rounded-full bg-white text-black shadow-lg sm:hidden"
           aria-label="Add a game"
         >
           <Plus className="size-6" />
