@@ -13,6 +13,7 @@ import {
   stringifyBackup,
 } from "@/lib/backup";
 import { publicShelfPath } from "@/lib/cloud/client";
+import { copyText } from "@/lib/copy-text";
 
 export function SettingsPage() {
   const {
@@ -100,8 +101,14 @@ export function SettingsPage() {
       return;
     }
     const url = `${window.location.origin}${publicShelfPath(cloud.publicId)}`;
-    await navigator.clipboard.writeText(url);
-    setMessage("Public share link copied. Friends can view, not edit.");
+    const result = await copyText(url);
+    if (result === "copied") {
+      setError("");
+      setMessage("Public share link copied. Friends can view, not edit.");
+      return;
+    }
+    setError("");
+    setMessage("Clipboard is blocked in this window. Select the link below and copy it.");
   }
 
   return (
@@ -187,11 +194,16 @@ export function SettingsPage() {
           device key is never in this URL.
         </p>
         {cloud?.publicId && (
-          <p className="break-all font-mono text-xs text-white/50">
-            {typeof window !== "undefined"
-              ? `${window.location.origin}${publicShelfPath(cloud.publicId)}`
-              : publicShelfPath(cloud.publicId)}
-          </p>
+          <Input
+            readOnly
+            value={
+              typeof window !== "undefined"
+                ? `${window.location.origin}${publicShelfPath(cloud.publicId)}`
+                : publicShelfPath(cloud.publicId)
+            }
+            onFocus={(event) => event.currentTarget.select()}
+            className="font-mono text-xs"
+          />
         )}
         <Button variant="secondary" onClick={copyShare}>
           Copy public link
