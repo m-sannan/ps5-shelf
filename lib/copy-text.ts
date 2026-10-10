@@ -7,6 +7,7 @@ function fallbackCopy(text: string) {
   field.style.position = "fixed";
   field.style.top = "0";
   field.style.left = "0";
+  field.style.fontSize = "16px";
   field.style.opacity = "0";
   document.body.appendChild(field);
   field.focus();

@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { artSrc } from "@/lib/art-src";
 import { publicShelfPath } from "@/lib/cloud/client";
 import { copyText, selectField } from "@/lib/copy-text";
+import { shareLink } from "@/lib/share-blob";
 import { handleError, normalizeHandle } from "@/lib/handle";
 import { toggleFavoriteId } from "@/lib/crate";
 import { toPublicLibrary } from "@/lib/public-view";
@@ -20,6 +21,7 @@ import { CURRENCIES, type CurrencyCode, type Game } from "@/lib/types";
 export function ShareLibrary() {
   const { library, ready, cloud, syncError, updateProfile, updateGame } = useLibrary();
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [hint, setHint] = useState("");
   const [handleDraft, setHandleDraft] = useState(library.profile.handle ?? "");
   const [handleFocused, setHandleFocused] = useState(false);
@@ -45,12 +47,36 @@ export function ShareLibrary() {
     const result = await copyText(shareUrl);
     if (result === "copied") {
       setCopied(true);
-      setHint("");
+      setHint("Link copied.");
       window.setTimeout(() => setCopied(false), 2000);
       return;
     }
     selectField(fieldRef.current);
-    setHint("Clipboard is blocked in this window. Select the link and copy it.");
+    setHint("Clipboard is blocked. The link below is selected — copy it from there.");
+  }
+
+  async function sharePublicLink() {
+    if (!shareUrl) {
+      setHint("Share links are available after this shelf is online.");
+      return;
+    }
+    setSharing(true);
+    try {
+      const outcome = await shareLink({
+        title: `${library.profile.name.trim() || "Crate"} on Crate`,
+        text: "My PS5 shelf",
+        url: shareUrl,
+      });
+      setHint(
+        outcome === "shared"
+          ? "Opened the share sheet."
+          : outcome === "copied"
+            ? "This browser has no share sheet. The link was copied instead."
+            : "Share was cancelled, or this browser blocked it.",
+      );
+    } finally {
+      setSharing(false);
+    }
   }
 
   function commitHandle() {
@@ -92,9 +118,14 @@ export function ShareLibrary() {
         </div>
         <div className="flex items-center gap-3">
           <ShareGuideButton />
+          <Button variant="secondary" onClick={() => void sharePublicLink()} disabled={sharing}>
+            {sharing ? "Opening…" : "Share link"}
+          </Button>
           <Button onClick={copyLink}>{copied ? "Link copied" : "Copy public link"}</Button>
         </div>
       </div>
+
+      {hint && !shareUrl ? <p className="text-sm text-white/60">{hint}</p> : null}
 
       {shareUrl && (
         <div className="max-w-xl min-w-0 space-y-2">

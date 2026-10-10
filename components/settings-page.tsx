@@ -14,6 +14,7 @@ import {
 } from "@/lib/backup";
 import { publicShelfPath } from "@/lib/cloud/client";
 import { copyText } from "@/lib/copy-text";
+import { shareLink } from "@/lib/share-blob";
 
 export function SettingsPage() {
   const {
@@ -90,6 +91,27 @@ export function SettingsPage() {
     } finally {
       setBusy("");
     }
+  }
+
+  async function sharePublic() {
+    if (!cloud?.publicId) {
+      setError("Share links are available after this shelf is online.");
+      return;
+    }
+    const url = `${window.location.origin}${publicShelfPath(cloud.publicId, library.profile.handle)}`;
+    setError("");
+    const outcome = await shareLink({
+      title: `${library.profile.name.trim() || "Crate"} on Crate`,
+      text: "My PS5 shelf",
+      url,
+    });
+    setMessage(
+      outcome === "shared"
+        ? "Opened the share sheet."
+        : outcome === "copied"
+          ? "This browser has no share sheet. The link was copied instead."
+          : "Share was cancelled, or this browser blocked it.",
+    );
   }
 
   async function copyShare() {
@@ -204,9 +226,14 @@ export function SettingsPage() {
             className="font-mono text-xs"
           />
         )}
-        <Button variant="secondary" onClick={copyShare}>
-          Copy public link
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => void sharePublic()}>
+            Share link
+          </Button>
+          <Button variant="secondary" onClick={copyShare}>
+            Copy public link
+          </Button>
+        </div>
       </section>
 
       {message && <p className="text-sm text-white/70">{message}</p>}

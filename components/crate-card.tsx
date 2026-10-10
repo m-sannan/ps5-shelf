@@ -4,7 +4,7 @@ import { useState } from "react";
 import { artSrc } from "@/lib/art-src";
 import { crateStats, diaryLine, favoriteFour } from "@/lib/crate";
 import type { Game, Profile } from "@/lib/types";
-import { canvasPng, shareBlob } from "@/lib/share-blob";
+import { canvasPng, shareLink } from "@/lib/share-blob";
 import { Button } from "@/components/ui/button";
 
 function loadImage(src: string) {
@@ -162,14 +162,15 @@ export function CrateCardButton({
   }
 
   async function share() {
+    const url = absoluteUrl();
+    if (!url) {
+      setHint("This Crate does not have a public link yet.");
+      return;
+    }
     setBusy("share");
     setHint("");
     try {
-      const blob = await cardBlob();
-      const url = absoluteUrl();
-      const outcome = await shareBlob({
-        blob,
-        filename: `crate-${slug()}.png`,
+      const outcome = await shareLink({
         title: `${profile.name.trim() || "Crate"} on Crate`,
         text: diaryLine(games) || "A PS5 shelf.",
         url,
@@ -178,9 +179,9 @@ export function CrateCardButton({
         outcome === "shared"
           ? "Opened the share sheet."
           : outcome === "copied"
-            ? "Link copied, and the image was saved."
-            : outcome === "saved"
-              ? "Saved the Crate card."
+            ? "Link copied."
+            : outcome === "blocked"
+              ? "Share was cancelled, or this browser blocked it. Copy the link from Share."
               : "",
       );
     } catch (error) {

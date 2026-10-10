@@ -39,6 +39,35 @@ import {
 } from "@/lib/storage";
 import type { Account, Game, Library, Loan, Profile } from "@/lib/types";
 
+function shelfCopy(source: Game): Game {
+  const digital = source.copyKind === "digital";
+  return {
+    id: uid("game"),
+    title: source.title,
+    platform: "PS5",
+    purchasePrice: 0,
+    purchaseDate: "",
+    askingPrice: null,
+    soldPrice: null,
+    status: "on_shelf",
+    condition: "good",
+    notes: "",
+    listingNote: "",
+    review: "",
+    loggedAt: "",
+    hidden: false,
+    coverColor: source.coverColor || "#3b82f6",
+    coverImage: source.coverImage ?? null,
+    discPhoto: null,
+    casePhoto: null,
+    photos: [],
+    copyKind: digital ? "digital" : "disc",
+    rating: null,
+    borrowedFrom: "",
+    loans: [],
+  };
+}
+
 const EMPTY: Library = {
   profile: {
     name: "",
@@ -64,6 +93,7 @@ type LibraryContextValue = {
     game: Omit<Game, "id" | "loans" | "platform"> & { loans?: Loan[] },
   ) => void;
   addFromPublic: (game: Game) => "added" | "exists" | "no-shelf";
+  startWithGame: (name: string, game: Game) => Promise<void>;
   updateGame: (id: string, patch: Partial<Game>) => void;
   deleteGame: (id: string) => void;
   addLoan: (gameId: string, loan: Omit<Loan, "id">) => void;
@@ -234,37 +264,9 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       if (state.library.games.some((game) => game.title.trim().toLowerCase() === title)) {
         return "exists";
       }
-      const digital = source.copyKind === "digital";
       schedulePush({
         ...state.library,
-        games: [
-          {
-            id: uid("game"),
-            title: source.title,
-            platform: "PS5",
-            purchasePrice: 0,
-            purchaseDate: "",
-            askingPrice: null,
-            soldPrice: null,
-            status: "on_shelf",
-            condition: "good",
-            notes: "",
-            listingNote: "",
-            review: "",
-            loggedAt: "",
-            hidden: false,
-            coverColor: source.coverColor || "#3b82f6",
-            coverImage: source.coverImage ?? null,
-            discPhoto: null,
-            casePhoto: null,
-            photos: [],
-            copyKind: digital ? "digital" : "disc",
-            rating: null,
-            borrowedFrom: "",
-            loans: [],
-          },
-          ...state.library.games,
-        ],
+        games: [shelfCopy(source), ...state.library.games],
       });
       return "added";
     },
@@ -464,6 +466,31 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     [setError],
   );
 
+  const startWithGame = useCallback(
+    async (name: string, source: Game) => {
+      const copy = shelfCopy(source);
+      const trimmed = name.trim() || "My Crate";
+      await createShelf({
+        name: trimmed,
+        library: {
+          profile: {
+            name: trimmed,
+            contact: "",
+            city: "",
+            note: "",
+            currency: "INR",
+            sharePublic: true,
+            shareCollection: true,
+            handle: "",
+            favoriteIds: [copy.id],
+          },
+          games: [copy],
+        },
+      });
+    },
+    [createShelf],
+  );
+
   const joinShelf = useCallback(
     async (code: string) => {
       const deviceSecret = generateDeviceSecret();
@@ -525,6 +552,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       addGame,
       addFromPublic,
+      startWithGame,
       updateGame,
       deleteGame,
       addLoan,
@@ -558,6 +586,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       addGame,
       addFromPublic,
+      startWithGame,
       updateGame,
       deleteGame,
       addLoan,

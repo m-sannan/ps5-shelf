@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArtworkPicker } from "@/components/artwork-picker";
 import { FieldSelect } from "@/components/field-select";
 import { NativeFileButton, PhotoGallery, PhotoLightbox } from "@/components/photo-gallery";
@@ -586,9 +585,11 @@ export function GamePanel({
 }
 
 function AddToShelfButton({ game }: { game: Game }) {
-  const { addFromPublic, library, signedIn } = useLibrary();
-  const router = useRouter();
+  const { addFromPublic, startWithGame, library, signedIn } = useLibrary();
   const [state, setState] = useState<"idle" | "added" | "exists" | "no-shelf">("idle");
+  const [name, setName] = useState("");
+  const [hint, setHint] = useState("");
+  const [busy, setBusy] = useState(false);
   const already = library.games.some(
     (row) => row.title.trim().toLowerCase() === game.title.trim().toLowerCase(),
   );
@@ -600,6 +601,47 @@ function AddToShelfButton({ game }: { game: Game }) {
     return <p className="text-sm text-emerald-300/90">Added to your shelf.</p>;
   }
 
+  async function start() {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setHint("Give your Crate a name.");
+      return;
+    }
+    setBusy(true);
+    setHint("");
+    try {
+      await startWithGame(trimmed, game);
+      setState("added");
+    } catch (error) {
+      setHint(error instanceof Error ? error.message : "Could not start the Crate.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (state === "no-shelf") {
+    return (
+      <div className="flex flex-col items-start gap-2">
+        <p className="text-sm text-white/70">Start a Crate with this disc.</p>
+        <Input
+          value={name}
+          placeholder="Your name"
+          onChange={(event) => setName(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void start();
+            }
+          }}
+        />
+        <Button type="button" onClick={() => void start()} disabled={busy}>
+          {busy ? "Starting…" : "Start with this disc"}
+        </Button>
+        {hint ? <p className="text-xs text-destructive">{hint}</p> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-start gap-1">
       <Button
@@ -607,7 +649,6 @@ function AddToShelfButton({ game }: { game: Game }) {
         onClick={() => {
           const result = addFromPublic(game);
           setState(result);
-          if (result === "no-shelf") router.push("/");
         }}
       >
         Add to my shelf
@@ -615,7 +656,7 @@ function AddToShelfButton({ game }: { game: Game }) {
       <p className="text-xs text-white/40">
         {signedIn
           ? "Copies the title and box art. Rating, notes, and price stay theirs."
-          : "Opens Crate so you can keep this disc."}
+          : "Starts your own Crate with this title and box art."}
       </p>
     </div>
   );

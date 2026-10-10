@@ -4,7 +4,7 @@ import { useState } from "react";
 import { artSrc } from "@/lib/art-src";
 import { starText } from "@/lib/crate";
 import { shortDate } from "@/lib/format";
-import { canvasPng, shareBlob } from "@/lib/share-blob";
+import { canvasPng, shareBlob, shareLink } from "@/lib/share-blob";
 import type { Game, Profile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { RatingStars } from "@/components/rating-stars";
@@ -200,27 +200,30 @@ export function ShareReviewButton({
     setBusy(true);
     setHint("");
     try {
+      const stars = starText(game.rating);
+      const take = game.review?.trim() ?? "";
+      const text = [game.title, stars, take].filter(Boolean).join("\n");
+      if (url) {
+        const outcome = await shareLink({ title: game.title, text, url });
+        setHint(
+          outcome === "shared"
+            ? "Opened the share sheet."
+            : outcome === "copied"
+              ? "Link copied."
+              : "Share was cancelled, or this browser blocked it.",
+        );
+        return;
+      }
       const canvas = await drawReviewCard({ game, profile, url });
       const blob = await canvasPng(canvas);
       const slug = game.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
-      const stars = starText(game.rating);
-      const take = game.review?.trim() ?? "";
       const outcome = await shareBlob({
         blob,
         filename: `crate-${slug}.png`,
         title: game.title,
-        text: [game.title, stars, take].filter(Boolean).join("\n"),
-        url,
+        text,
       });
-      setHint(
-        outcome === "shared"
-          ? "Opened the share sheet."
-          : outcome === "copied"
-            ? "Link copied. Image saved if your browser allows it."
-            : outcome === "saved"
-              ? "Saved the review image."
-              : "",
-      );
+      setHint(outcome === "shared" ? "Opened the share sheet." : "Saved the review image.");
     } catch (error) {
       setHint(error instanceof Error ? error.message : "Could not share that take.");
     } finally {

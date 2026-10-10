@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Banknote, Library, Settings, Share2 } from "lucide-react";
 import { AddGameSheet } from "@/components/add-game-sheet";
 import { HowItWorks } from "@/components/how-it-works";
+import { HandlePrompt } from "@/components/handle-prompt";
 import { useLibrary } from "@/components/library-provider";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,7 @@ export function AppFrame({
             "sm:pb-6",
           )}
         >
+          <HandlePrompt />
           {children}
         </div>
         <MobileDock />
