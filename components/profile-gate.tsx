@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useLibrary } from "@/components/library-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,29 @@ import {
 } from "@/lib/storage";
 import type { ShelfState } from "@/lib/storage";
 
+function useBrowserReady() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
+function OpeningShelf() {
+  return (
+    <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] sm:px-5 sm:py-5">
+      <div className="mx-auto flex min-h-[100svh] w-full max-w-6xl flex-1 flex-col items-center justify-center bg-[#161616] px-4 sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10">
+        <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Crate</p>
+        <p className="mt-3 text-sm text-white/55">Opening your Crate…</p>
+      </div>
+    </div>
+  );
+}
+
 export function ProfileGate({ children }: { children: React.ReactNode }) {
-  const { signedIn, signIn, createShelf, joinShelf, importLegacy, restoreLibrary, account } =
+  const { signedIn, signIn, createShelf, joinShelf, importLegacy, restoreLibrary } =
     useLibrary();
-  const [saved, setSaved] = useState(false);
-  const [snapshot, setSnapshot] = useState<ShelfState | null>(null);
-  const [legacy, setLegacy] = useState<LegacyAccount[]>([]);
+  const browserReady = useBrowserReady();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
@@ -28,13 +45,12 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
   const [restoreMode, setRestoreMode] = useState<"copy" | "replace">("copy");
   const [more, setMore] = useState(false);
 
-  useEffect(() => {
-    setSaved(hasSavedShelf());
-    setSnapshot(getStoreSnapshot());
-    setLegacy(readLegacyAccounts());
-  }, [signedIn]);
-
+  if (!browserReady) return <OpeningShelf />;
   if (signedIn) return children;
+
+  const snapshot: ShelfState = getStoreSnapshot();
+  const saved = hasSavedShelf(snapshot);
+  const legacy: LegacyAccount[] = readLegacyAccounts();
 
   async function run(label: string, fn: () => Promise<void>) {
     setBusy(true);
@@ -96,7 +112,7 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
           the shelf; you can pair another device or restore from a JSON backup.
         </p>
 
-        {saved && snapshot && (
+        {saved && (
           <div className="mt-10 w-full max-w-md space-y-3 rounded-2xl border border-white/10 bg-white/5 p-5">
             <p className="text-sm font-medium">Continue on this device</p>
             <p className="text-sm text-white/60">
@@ -225,9 +241,6 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
           </>
         )}
 
-        {account && (
-          <p className="mt-6 text-sm text-white/40">{account.name}</p>
-        )}
         {error && <p className="mt-4 max-w-md text-center text-sm text-destructive">{error}</p>}
         <p className="mt-8 max-w-lg text-center text-xs text-white/40">
           If every device is lost and you never exported a backup, there is no
