@@ -5,6 +5,7 @@ import { artSrc } from "@/lib/art-src";
 import { starText } from "@/lib/crate";
 import { shortDate } from "@/lib/format";
 import { canvasPng, shareBlob, shareLink } from "@/lib/share-blob";
+import { copyText } from "@/lib/copy-text";
 import type { Game, Profile } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { RatingStars } from "@/components/rating-stars";
@@ -119,6 +120,14 @@ export async function drawReviewCard(input: {
   return canvas;
 }
 
+function takeText(game: Game) {
+  const stars = starText(game.rating);
+  const take = game.review?.trim() ?? "";
+  const when = game.loggedAt ? `Logged ${shortDate(game.loggedAt)}` : "";
+  const meta = [stars, when].filter(Boolean).join(" · ");
+  return [game.title, meta, take].filter(Boolean).join("\n");
+}
+
 export function ReviewCard({
   game,
   profile,
@@ -200,9 +209,7 @@ export function ShareReviewButton({
     setBusy(true);
     setHint("");
     try {
-      const stars = starText(game.rating);
-      const take = game.review?.trim() ?? "";
-      const text = [game.title, stars, take].filter(Boolean).join("\n");
+      const text = takeText(game);
       if (url) {
         const outcome = await shareLink({ title: game.title, text, url });
         setHint(
@@ -231,11 +238,27 @@ export function ShareReviewButton({
     }
   }
 
+  async function copyTake() {
+    setHint("");
+    const body = takeText(game);
+    const result = await copyText(url ? `${body}\n${url}` : body);
+    setHint(result === "copied" ? "Take copied." : "Clipboard is blocked.");
+  }
+
   return (
     <div className="mt-3 flex flex-col items-start gap-1">
-      <Button type="button" size="sm" variant="secondary" onClick={() => void share()} disabled={busy}>
-        {busy ? "Preparing…" : "Share this take"}
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" size="sm" variant="secondary" onClick={() => void share()} disabled={busy}>
+          {busy ? "Preparing…" : "Share this take"}
+        </Button>
+        <button
+          type="button"
+          className="text-sm text-white/50 hover:text-white"
+          onClick={() => void copyTake()}
+        >
+          Copy text
+        </button>
+      </div>
       {hint ? <p className="text-xs text-white/45">{hint}</p> : null}
     </div>
   );

@@ -11,6 +11,7 @@ import { useLibrary } from "@/components/library-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { artSrc } from "@/lib/art-src";
+import { publicShelfPath } from "@/lib/cloud/client";
 import { money } from "@/lib/format";
 import {
   conditionPhotos,
@@ -53,7 +54,7 @@ export function GameGrid({
   caption?: string | false;
   onOpenGame?: (game: Game) => void;
 }) {
-  const { library, updateGame } = useLibrary();
+  const { library, updateGame, cloud } = useLibrary();
   const filtersOn = showFilters ?? true;
   const [filter, setFilter] = useState<FilterId>("all");
   const [query, setQuery] = useState("");
@@ -67,6 +68,10 @@ export function GameGrid({
     contact: library.profile.contact,
   };
   const shelfToggle = !publicView && !readOnly;
+  const shareUrl =
+    !publicView && cloud?.publicId
+      ? `${typeof window !== "undefined" ? window.location.origin : ""}${publicShelfPath(cloud.publicId, library.profile.handle)}`
+      : "";
 
   const source = gamesProp ?? library.games;
   const saleCount = source.filter(isForSale).length;
@@ -372,6 +377,7 @@ export function GameGrid({
                 readOnly={readOnly}
                 hideChrome
                 publicView={publicView}
+                shareUrl={shareUrl}
                 currency={sellerCard.currency}
                 onClose={() => setOpenedId(null)}
                 emptyHint=""

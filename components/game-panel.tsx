@@ -206,6 +206,18 @@ export function GamePanel({
             />
           )}
           {game.review?.trim() ? (
+            <div className="mt-3 max-w-[12rem]">
+              <Label htmlFor={`logged-${gameId}`}>Logged</Label>
+              <Input
+                id={`logged-${gameId}`}
+                type="date"
+                className="mt-1.5"
+                value={game.loggedAt || ""}
+                onChange={(event) => updateGame(gameId, { loggedAt: event.target.value })}
+              />
+            </div>
+          ) : null}
+          {game.review?.trim() ? (
             <ShareReviewButton
               game={game}
               profile={author ?? library.profile}
