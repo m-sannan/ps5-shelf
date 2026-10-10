@@ -220,7 +220,7 @@ export function CrateView({
               </Button>
               <p className="min-w-0 truncate text-sm font-medium">{opened.title}</p>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="h-0 min-h-0 min-w-0 flex-1 touch-pan-y overflow-y-scroll overscroll-y-contain px-4 py-4 sm:px-6">
               <GamePanel
                 game={opened}
                 onClose={() => setOpened(null)}

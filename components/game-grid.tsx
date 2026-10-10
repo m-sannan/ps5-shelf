@@ -319,7 +319,7 @@ export function GameGrid({
               <span className="shrink-0 text-xs text-white/40">Saved as you go</span>
             )}
           </div>
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-5 pb-10 sm:px-6">
+          <div className="h-0 min-h-0 min-w-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-scroll overscroll-y-contain px-4 py-5 pb-10 sm:px-6">
             <div className="mx-auto flex max-w-lg items-end gap-4">
               <button
                 type="button"

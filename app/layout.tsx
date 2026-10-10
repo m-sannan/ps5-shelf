@@ -24,8 +24,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${outfit.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
+    <html lang="en" className={`dark ${outfit.variable} min-h-full antialiased`}>
+      <body className="flex min-h-full flex-col overflow-x-clip bg-background font-sans text-foreground">
         <LibraryProvider>{children}</LibraryProvider>
       </body>
     </html>

@@ -129,7 +129,7 @@ export function PublicShelf({ publicId }: { publicId: string }) {
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] sm:px-5 sm:py-5">
-      <div className="mx-auto flex min-h-dvh w-full max-w-6xl min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto bg-[#161616] px-4 py-6 pb-16 sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col bg-[#161616] px-4 py-6 pb-16 sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10 sm:px-6">
         <CrateView
           profile={data.profile}
           games={data.games}

@@ -24,12 +24,12 @@ export function AppFrame({
   showAdd?: boolean;
 }) {
   return (
-    <div className="flex h-dvh min-h-0 flex-1 flex-col overflow-hidden bg-[#0b0b0d] sm:h-auto sm:min-h-full sm:overflow-visible sm:px-5 sm:py-5">
-      <div className="relative mx-auto flex h-full min-h-0 w-full min-w-0 max-w-6xl flex-1 flex-col overflow-hidden bg-[#161616] sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10 sm:shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+    <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] sm:px-5 sm:py-5">
+      <div className="relative mx-auto flex w-full min-w-0 max-w-6xl flex-1 flex-col bg-[#161616] sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10 sm:shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
         <SiteHeader showAdd={showAdd} />
         <div
           className={cn(
-            "min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pt-4 sm:px-6 sm:pb-6",
+            "min-w-0 px-4 pt-4 sm:px-6",
             showAdd ? "pb-36" : "pb-28",
             "sm:pb-6",
           )}

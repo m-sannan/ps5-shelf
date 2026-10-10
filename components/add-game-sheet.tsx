@@ -176,7 +176,7 @@ export function AddGameSheet({ variant = "header" }: { variant?: "header" | "fab
             </SheetDescription>
           </SheetHeader>
 
-          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 pb-4">
+          <div className="h-0 min-h-0 min-w-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-scroll overscroll-y-contain px-4 pb-4">
             <div className="min-w-0 space-y-5">
               <div className="min-w-0">
                 <p className="text-xs font-medium text-white/50">Popular right now</p>
