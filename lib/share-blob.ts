@@ -28,11 +28,18 @@ export async function shareLink(input: {
   text?: string;
   url: string;
 }): Promise<ShareOutcome> {
-  const text = linkText(input.text ?? "", input.url);
+  // Pass text as-is (no forced URL append). Platforms that support the url param
+  // will show a single link preview; stuffing the URL into text caused duplicates
+  // in iMessage and similar share sheets.
+  const text = (input.text ?? "").trim();
   const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
   try {
     if (typeof nav.share === "function") {
-      await nav.share({ title: input.title, text, url: input.url });
+      await nav.share({
+        title: input.title,
+        text: text || undefined,
+        url: input.url,
+      });
       return "shared";
     }
   } catch (error) {
