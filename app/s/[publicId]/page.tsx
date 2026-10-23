@@ -10,6 +10,11 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { publicId } = await params;
+  const origin = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "https://ps5-shelf.vercel.app";
+  const videoUrl = `${origin}/api/og-video`;
+
   try {
     const data = await readCloud((blob) => publicShelf(blob, publicId));
     if (!data || data.privateShelf) {
@@ -29,6 +34,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         title: `${name} — Crate`,
         description: description || "A public PS5 shelf.",
         type: "profile",
+        videos: [
+          {
+            url: videoUrl,
+            secureUrl: videoUrl,
+            type: "video/mp4",
+            width: 1200,
+            height: 630,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
