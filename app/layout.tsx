@@ -9,9 +9,36 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Crate — PS5 game library",
+  metadataBase: new URL("https://ps5-shelf.vercel.app"),
+  title: "Crate — Letterboxd for your PS5 discs",
   description:
-    "A PS5-style shelf of physical game cases, with loans, sale prices, and disc photos.",
+    "Crate — Letterboxd for your PS5 discs. Pin your four favourites, write short takes, share a public shelf card, and sync across devices with no login.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Crate — Letterboxd for your PS5 discs",
+    description:
+      "Pin your four favourites, write short takes, share a public shelf card, and sync across devices with no login.",
+    url: "https://ps5-shelf.vercel.app/",
+    siteName: "Crate",
+    type: "website",
+    images: [
+      {
+        url: "/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "Crate — Letterboxd for your PS5 discs",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Crate — Letterboxd for your PS5 discs",
+    description:
+      "Pin your four favourites, write short takes, share a public shelf card, and sync across devices with no login.",
+    images: ["/icon-512.png"],
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "48x48" },

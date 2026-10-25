@@ -26,9 +26,44 @@ function useBrowserReady() {
 function OpeningShelf() {
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[#0b0b0d] sm:px-5 sm:py-5">
-      <div className="mx-auto flex min-h-[100svh] w-full max-w-6xl flex-1 flex-col items-center justify-center bg-[#161616] px-4 sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-white/35">Crate</p>
-        <p className="mt-3 text-sm text-white/55">Opening your Crate…</p>
+      <div className="mx-auto flex min-h-[100svh] w-full max-w-6xl flex-1 flex-col items-center justify-center bg-[#161616] px-4 py-12 sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px] sm:border sm:border-white/10">
+        <p className="text-xs uppercase tracking-[0.32em] text-white/40">
+          Crate · PlayStation 5 disc library
+        </p>
+        <h1 className="mt-3 text-center text-4xl font-medium tracking-tight sm:text-5xl">
+          Crate — Letterboxd for your PS5 discs.
+        </h1>
+        <p className="mt-3 max-w-lg text-center text-sm text-white/65">
+          Pin your four favourites, write short takes, share a public shelf card,
+          and sync across devices with no login.
+        </p>
+        <div className="mt-8 grid w-full max-w-xl gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-sm font-medium text-white">Public shelf &amp; four favourites</p>
+            <p className="mt-1 text-xs leading-relaxed text-white/60">
+              Claim a memorable handle (/s/yourname), pin the four PS5 cases people see first, and export a 1080×1350 shareable Crate card.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-sm font-medium text-white">Takes &amp; diary</p>
+            <p className="mt-1 text-xs leading-relaxed text-white/60">
+              Rate games in half-stars, log what you are playing or finished, and share Letterboxd-style review cards.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-sm font-medium text-white">Add to my shelf &amp; condition photos</p>
+            <p className="mt-1 text-xs leading-relaxed text-white/60">
+              Friends can copy titles into their own Crate in one tap, or browse condition photos and asking prices on discs you list for sale.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-sm font-medium text-white">Cloud sync with no account</p>
+            <p className="mt-1 text-xs leading-relaxed text-white/60">
+              Create your shelf in this browser, pair a second phone or laptop with a 6-digit code, or download a JSON backup anytime.
+            </p>
+          </div>
+        </div>
+        <p className="mt-6 text-xs text-white/45">Loading your shelf…</p>
       </div>
     </div>
   );
@@ -108,8 +143,10 @@ export function ProfileGate({ children }: { children: React.ReactNode }) {
           Your cloud shelf
         </h1>
         <p className="mt-3 max-w-lg text-center text-sm text-white/65">
-          A private library of your PS5 copies. No account. This browser keeps
-          the shelf; you can pair another device or restore from a JSON backup.
+          Letterboxd for your PS5 discs. Pin your four favourites, write short
+          takes, share a public shelf card, and sync across devices with no
+          login — pair another device with a 6-digit code or restore from a JSON
+          backup.
         </p>
 
         {saved && (
