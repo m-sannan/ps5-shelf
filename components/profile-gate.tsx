@@ -63,7 +63,16 @@ function OpeningShelf() {
             </p>
           </div>
         </div>
-        <p className="mt-6 text-xs text-white/45">Loading your shelf…</p>
+        <p className="mt-6 text-xs text-white/45">
+          Loading your shelf… · Built by{" "}
+          <a href="https://msannan.vercel.app/" rel="author" className="underline text-white/70">
+            Sannan (Mohammed Sannan V S)
+          </a>{" "}
+          ·{" "}
+          <a href="https://msannan.vercel.app/crate.html" className="underline text-white/70">
+            PM Case Study
+          </a>
+        </p>
       </div>
     </div>
   );
